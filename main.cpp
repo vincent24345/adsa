@@ -1,79 +1,75 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
-
 using namespace std;
 
-// Function to convert a character digit to its integer value
-int charToDigit(char c) {
-    return c - '0';
+//convert character to integer
+int charToInt(char ch) {
+    return ch - '0';
 }
 
-// Function to convert an integer digit to its character representation
-char digitToChar(int d) {
-    return d + '0';
+//convert integer to character representation
+char intToChar(int num) {
+    return num + '0';
 }
 
-// School method for addition of two numbers in a given base
-string schoolAdd(string I1, string I2, int B) {
+//school method for addition
+string schoolAddition(string num1, string num2, int base) {
     string result = "";
-    int carry = 0;
+    int carryOver = 0;
 
-    // Pad the shorter string with leading zeros
-    while (I1.length() < I2.length()) I1 = "0" + I1;
-    while (I2.length() < I1.length()) I2 = "0" + I2;
+    //add zeros
+    while (num1.length() < num2.length()) num1 = "0" + num1;
+    while (num2.length() < num1.length()) num2 = "0" + num2;
 
-    // Perform addition from right to left
-    for (int i = I1.length() - 1; i >= 0; i--) {
-        int sum = charToDigit(I1[i]) + charToDigit(I2[i]) + carry;
-        result = digitToChar(sum % B) + result;
-        carry = sum / B;
+    //addition right to left
+    for (int i = num1.length() - 1; i >= 0; i--) {
+        int sum = charToInt(num1[i]) + charToInt(num2[i]) + carryOver;
+        result = intToChar(sum % base) + result;
+        carryOver = sum / base;
     }
 
-    // If there's any remaining carry, add it to the result
-    if (carry > 0) result = digitToChar(carry) + result;
+    //if statement for carry.
+    if (carryOver > 0) result = intToChar(carryOver) + result;
 
     return result;
 }
 
-// Function to perform the Karatsuba multiplication of two numbers in a given base
-string karatsubaMultiply(string I1, string I2, int B) {
-    // For simplicity, we'll use standard long multiplication here
-    int len1 = I1.size();
-    int len2 = I2.size();
-    string result(len1 + len2, '0');
+//function for karatsuba multiplication 
+string karatsubaMultiplication(string num1, string num2, int base) {
+    //long multiplication
+    int length1 = num1.size();
+    int length2 = num2.size();
+    string result(length1 + length2, '0');
 
-    for (int i = len1 - 1; i >= 0; --i) {
-        int carry = 0;
-        for (int j = len2 - 1; j >= 0; --j) {
-            int product = charToDigit(I1[i]) * charToDigit(I2[j]) + charToDigit(result[i + j + 1]) + carry;
-            result[i + j + 1] = digitToChar(product % B);
-            carry = product / B;
+    for (int i = length1 - 1; i >= 0; --i) {
+        int carryOver = 0;
+        for (int j = length2 - 1; j >= 0; --j) {
+            int product = charToInt(num1[i]) * charToInt(num2[j]) + charToInt(result[i + j + 1]) + carryOver;
+            result[i + j + 1] = intToChar(product % base);
+            carryOver = product / base;
         }
-        result[i] = digitToChar(charToDigit(result[i]) + carry);
+        result[i] = intToChar(charToInt(result[i]) + carryOver);
     }
 
-    // Remove leading zeros
-    size_t pos = result.find_first_not_of('0');
-    if (pos != string::npos) return result.substr(pos);
+    //remove leading zeros
+    size_t position = result.find_first_not_of('0');
+    if (position != string::npos) return result.substr(position);
     return "0";
 }
 
-// Function to perform division of two numbers in a given base (output 0 for undergraduates)
-string divide(string I1, string I2, int B) {
-    return "0";  // Output 0 as per the guideline for undergraduates
+//function for division of two numbers
+string divideNumbers(string num1, string num2, int base) {
+    return "0";
 }
 
 int main() {
-    string I1, I2;
-    int B;
-    cin >> I1 >> I2 >> B;
-
-    string sumResult = schoolAdd(I1, I2, B);
-    string productResult = karatsubaMultiply(I1, I2, B);
-    string divisionResult = divide(I1, I2, B);
-
-    cout << sumResult << " " << productResult << " " << divisionResult << endl;
-
+    string number1, number2;
+    int base;
+    cin >> number1 >> number2 >> base;
+    string additionResult = schoolAddition(number1, number2, base);
+    string multiplicationResult = karatsubaMultiplication(number1, number2, base);
+    string divisionResult = divideNumbers(number1, number2, base);
+    cout << additionResult << " " << multiplicationResult << " " << divisionResult << endl;
     return 0;
 }
