@@ -5,58 +5,59 @@ using namespace std;
 
 class HashTable {
 private:
-    static const int SIZE = 26;  
-    vector<string> table;        
-    vector<int> status;        
+//hash table and vector to store keys
+    static const int TABLE_SIZE = 26;  
+    vector<string> table;         
+    vector<int> entryStatus;            
 
 public:
-    // Constructor to initialize the hash table and statuses
-    HashTable() : table(SIZE, ""), status(SIZE, 0) {}
+    //constructor for hash table
+    HashTable() : table(TABLE_SIZE, ""), entryStatus(TABLE_SIZE, 0) {}
 
-    // Hash function: takes the last character of the word
-    int hash(const string& key) const {
-        return key.back() - 'a';  
+    //returns index 
+    int getHashIndex(const string& key) const {
+        return key[key.length() - 1] - 'a';
+    }
+    //linear probing inserting string
+    void insertKey(const string& key) {
+        int idx = getHashIndex(key);
+        int originalIdx = idx;  
+
+        //loop for empty space
+        while (entryStatus[idx] == 2) {  
+            if (table[idx] == key) return;  
+            idx = (idx + 1) % TABLE_SIZE;  
+            if (idx == originalIdx) return;
+        }
+        
+        //place key in found spot
+        table[idx] = key;
+        entryStatus[idx] = 2; 
     }
 
-    // Insert a key into the hash table
-    void insert(const string& key) {
-        int idx = hash(key);
-        int start = idx;
-
-        do {
-            if (status[idx] == 0 || status[idx] == 1) {  
-                table[idx] = key;
-                status[idx] = 2;  // Mark as "occupied"
+    //delete string
+    void deleteKey(const string& key) {
+        int idx = getHashIndex(key);
+        int originalIdx = idx;  
+    //keep searching while slots are occupied
+        while (entryStatus[idx] != 0) {  
+            if (entryStatus[idx] == 2 && table[idx] == key) {  
+                entryStatus[idx] = 1;  
                 return;
             }
-            if (table[idx] == key) return;  // Key already exists
-            idx = (idx + 1) % SIZE;         // Linear probing
-        } while (idx != start);  // Stop if we loop back to the start
+            idx = (idx + 1) % TABLE_SIZE; 
+            if (idx == originalIdx) return; 
+        }
     }
 
-    // Delete a key from the hash table
-    void remove(const string& key) {
-        int idx = hash(key);
-        int start = idx;
-
-        do {
-            if (status[idx] == 0) return; 
-            if (status[idx] == 2 && table[idx] == key) {  // If key is found
-                status[idx] = 1; 
-                return;
-            }
-            idx = (idx + 1) % SIZE;  // Linear probing
-        } while (idx != start);
-    }
-
-    // Retrieve the keys from the hash table
-    void display() const {
-        bool first = true;
-        for (int i = 0; i < SIZE; ++i) {
-            if (status[i] == 2) {  
-                if (!first) cout << " ";
+    //display non-emptry keys
+    void displayKeys() const {
+        bool firstPrint = true;
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            if (entryStatus[i] == 2) {  
+                if (!firstPrint) cout << " ";
                 cout << table[i];
-                first = false;
+                firstPrint = false;
             }
         }
         cout << endl;
@@ -64,23 +65,35 @@ public:
 };
 
 int main() {
-    HashTable ht;
-    string line;
-    getline(cin, line);
+    HashTable hashTable;
+    string inputLine;
+    getline(cin, inputLine);  
 
-    string command;
-    for (size_t i = 0; i < line.length(); ++i) {
-        if (line[i] == ' ') continue;  // Skip spaces
-        if (line[i] == 'A') {
-            command = line.substr(i + 1, line.find(' ', i) - i - 1);
-            ht.insert(command);
-        } else if (line[i] == 'D') {
-            command = line.substr(i + 1, line.find(' ', i) - i - 1);
-            ht.remove(command);
+    string currentCommand;
+    string currentKey;
+
+    for (size_t i = 0; i < inputLine.length(); ++i) {
+        if (inputLine[i] == ' ') continue;  
+
+        if (inputLine[i] == 'A') {  
+            currentCommand = "ADD";
+            size_t j = i + 1;
+            while (j < inputLine.length() && inputLine[j] != ' ') j++;
+            currentKey = inputLine.substr(i + 1, j - i - 1); 
+            hashTable.insertKey(currentKey);
+            i = j - 1;  
+        } 
+        //delete command
+        else if (inputLine[i] == 'D') {  
+            currentCommand = "DELETE";
+            size_t j = i + 1;
+            while (j < inputLine.length() && inputLine[j] != ' ') j++;
+            currentKey = inputLine.substr(i + 1, j - i - 1); 
+            hashTable.deleteKey(currentKey);
+            i = j - 1;  
         }
-        i += command.length();
     }
 
-    ht.display();  
+    hashTable.displayKeys();  
     return 0;
 }
