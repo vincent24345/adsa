@@ -8,7 +8,7 @@ class HashTable {
 private:
     static const int SIZE = 26;  
     vector<string> table;
-    vector<int> status;  // 0: empty, 1: deleted, 2: occupied
+    vector<int> status;  
 
     int hash(const string& key) const {
         return key.back() - 'a';  
@@ -21,12 +21,12 @@ public:
         int idx = hash(key);
 
         while (status[idx] == 2 && table[idx] != key) {
-            idx = (idx + 1) % SIZE;  // Linear probing
+            idx = (idx + 1) % SIZE; 
         }
 
         if (status[idx] != 2) {
             table[idx] = key;
-            status[idx] = 2;  // Mark as occupied
+            status[idx] = 2;  
         }
     }
 
@@ -35,7 +35,7 @@ public:
 
         while (status[idx] != 0) {
             if (status[idx] == 2 && table[idx] == key) {
-                status[idx] = 1;  // Mark as deleted
+                status[idx] = 1;  
                 return;
             }
             idx = (idx + 1) % SIZE;
