@@ -1,51 +1,59 @@
 #include <iostream>
 #include <vector>
 #include <string>
-
 using namespace std;
 
 class HashTable {
 private:
     static const int SIZE = 26;  
-    vector<string> table;
-    vector<int> status;  
+    vector<string> table;        
+    vector<int> status;        
 
+public:
+    // Constructor to initialize the hash table and statuses
+    HashTable() : table(SIZE, ""), status(SIZE, 0) {}
+
+    // Hash function: takes the last character of the word
     int hash(const string& key) const {
         return key.back() - 'a';  
     }
 
-public:
-    HashTable() : table(SIZE, ""), status(SIZE, 0) {}
-
+    // Insert a key into the hash table
     void insert(const string& key) {
         int idx = hash(key);
+        int start = idx;
 
-        while (status[idx] == 2 && table[idx] != key) {
-            idx = (idx + 1) % SIZE; 
-        }
-
-        if (status[idx] != 2) {
-            table[idx] = key;
-            status[idx] = 2;  
-        }
-    }
-
-    void remove(const string& key) {
-        int idx = hash(key);
-
-        while (status[idx] != 0) {
-            if (status[idx] == 2 && table[idx] == key) {
-                status[idx] = 1;  
+        do {
+            if (status[idx] == 0 || status[idx] == 1) {  
+                table[idx] = key;
+                status[idx] = 2;  // Mark as "occupied"
                 return;
             }
-            idx = (idx + 1) % SIZE;
-        }
+            if (table[idx] == key) return;  // Key already exists
+            idx = (idx + 1) % SIZE;         // Linear probing
+        } while (idx != start);  // Stop if we loop back to the start
     }
 
+    // Delete a key from the hash table
+    void remove(const string& key) {
+        int idx = hash(key);
+        int start = idx;
+
+        do {
+            if (status[idx] == 0) return; 
+            if (status[idx] == 2 && table[idx] == key) {  // If key is found
+                status[idx] = 1; 
+                return;
+            }
+            idx = (idx + 1) % SIZE;  // Linear probing
+        } while (idx != start);
+    }
+
+    // Retrieve the keys from the hash table
     void display() const {
         bool first = true;
         for (int i = 0; i < SIZE; ++i) {
-            if (status[i] == 2) {
+            if (status[i] == 2) {  
                 if (!first) cout << " ";
                 cout << table[i];
                 first = false;
@@ -57,23 +65,20 @@ public:
 
 int main() {
     HashTable ht;
-    string input;
-    getline(cin, input);
+    string line;
+    getline(cin, line);
 
-    size_t pos = 0;
-    while (pos < input.length()) {
-        if (input[pos] == 'A') {
-            size_t spacePos = input.find(' ', pos + 1);
-            string key = input.substr(pos + 1, spacePos - pos - 1);
-            ht.insert(key);
-            pos = spacePos;
-        } else if (input[pos] == 'D') {
-            size_t spacePos = input.find(' ', pos + 1);
-            string key = input.substr(pos + 1, spacePos - pos - 1);
-            ht.remove(key);
-            pos = spacePos;
+    string command;
+    for (size_t i = 0; i < line.length(); ++i) {
+        if (line[i] == ' ') continue;  // Skip spaces
+        if (line[i] == 'A') {
+            command = line.substr(i + 1, line.find(' ', i) - i - 1);
+            ht.insert(command);
+        } else if (line[i] == 'D') {
+            command = line.substr(i + 1, line.find(' ', i) - i - 1);
+            ht.remove(command);
         }
-        pos++;
+        i += command.length();
     }
 
     ht.display();  
