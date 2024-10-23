@@ -1,129 +1,131 @@
 #include <iostream>
 #include <vector>
-#include <algorithm>
 #include <string>
+#include <sstream>
+#include <algorithm>
 #include <unordered_map>
+#include <tuple>
 
 using namespace std;
 
-// Helper function to convert character costs to integer costs
-int charToCost(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A';
-    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-    return -1;  // Invalid character
-}
-
-// Disjoint Set Union (DSU) or Union-Find structure to manage connected components
-class DSU {
-public:
-    DSU(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; ++i) parent[i] = i;
-    }
-
-    int find(int x) {
-        if (parent[x] != x) parent[x] = find(parent[x]);
-        return parent[x];
-    }
-
-    bool unite(int x, int y) {
-        int xr = find(x), yr = find(y);
-        if (xr == yr) return false;
-
-        if (rank[xr] < rank[yr]) {
-            parent[xr] = yr;
-        } else if (rank[xr] > rank[yr]) {
-            parent[yr] = xr;
-        } else {
-            parent[yr] = xr;
-            rank[xr]++;
-        }
-        return true;
-    }
-
-private:
-    vector<int> parent;
-    vector<int> rank;
+struct Edge {
+    int u, v, cost;
 };
 
-int main() {
-    string country_str, build_str, destroy_str;
-    cin >> country_str >> build_str >> destroy_str;
-
-    // Parse the input strings into 2D arrays
-    vector<vector<int>> country, build, destroy;
-    for (int i = 0; i < country_str.length(); i += 3) {
-        vector<int> row;
-        for (int j = 0; j < 3; j++) {
-            row.push_back(country_str[i + j] - '0');
-        }
-        country.push_back(row);
+// Disjoint Set Union (Union-Find) for Kruskal's algorithm
+class UnionFind {
+public:
+    UnionFind(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
     }
 
-    for (int i = 0; i < build_str.length(); i += 3) {
-        vector<int> row;
-        for (int j = 0; j < 3; j++) {
-            row.push_back(charToCost(build_str[i + j]));
-        }
-        build.push_back(row);
+    int find(int u) {
+        if (parent[u] != u)
+            parent[u] = find(parent[u]);
+        return parent[u];
     }
 
-    for (int i = 0; i < destroy_str.length(); i += 3) {
-        vector<int> row;
-        for (int j = 0; j < 3; j++) {
-            row.push_back(charToCost(destroy_str[i + j]));
-        }
-        destroy.push_back(row);
-    }
-
-    int n = country.size();
-    DSU dsu(n);
-
-    vector<pair<int, pair<int, int>>> edges;
-    vector<pair<int, pair<int, int>>> destroyEdges;
-
-    // Build the edges from the country matrix
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            if (country[i][j] == 1) {
-                destroyEdges.push_back({destroy[i][j], {i, j}});
-            } else if (i != j) {
-                edges.push_back({build[i][j], {i, j}});
+    void unite(int u, int v) {
+        int rootU = find(u);
+        int rootV = find(v);
+        if (rootU != rootV) {
+            if (rank[rootU] < rank[rootV]) {
+                parent[rootU] = rootV;
+            } else if (rank[rootU] > rank[rootV]) {
+                parent[rootV] = rootU;
+            } else {
+                parent[rootV] = rootU;
+                rank[rootU]++;
             }
         }
     }
 
-    // Sort the destroy edges in ascending order of cost
-    sort(destroyEdges.begin(), destroyEdges.end());
+private:
+    vector<int> parent, rank;
+};
 
-    int totalCost = 0;
+// Function to convert letter costs to numerical values
+int letterToCost(char c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    return 0; // Default
+}
 
-    // Add destroy edges first
-    for (auto& edge : destroyEdges) {
-        int cost = edge.first;
-        int u = edge.second.first;
-        int v = edge.second.second;
+int main() {
+    string input;
+    getline(cin, input);
 
-        if (dsu.find(u) == dsu.find(v)) {
-            totalCost += cost;
-        } else {
-            dsu.unite(u, v);
+    // Split the input into three parts
+    stringstream ss(input);
+    string countryStr, buildStr, destroyStr;
+    getline(ss, countryStr, ' ');
+    getline(ss, buildStr, ' ');
+    getline(ss, destroyStr, ' ');
+
+    // Parse the country matrix
+    vector<vector<int>> country;
+    stringstream countryStream(countryStr);
+    string line;
+    while (getline(countryStream, line, ',')) {
+        vector<int> row;
+        for (char c : line) {
+            row.push_back(c - '0');
+        }
+        country.push_back(row);
+    }
+
+    int n = country.size();
+    UnionFind uf(n);
+    vector<Edge> buildEdges;
+    vector<Edge> destroyEdges;
+
+    // Parse build costs and destroy costs and create edges
+    stringstream buildStream(buildStr);
+    stringstream destroyStream(destroyStr);
+    string buildLine, destroyLine;
+
+    for (int i = 0; i < n; ++i) {
+        getline(buildStream, buildLine, ',');
+        getline(destroyStream, destroyLine, ',');
+
+        for (int j = 0; j < n; ++j) {
+            if (country[i][j] == 1) { // Existing road
+                int destroyCost = letterToCost(destroyLine[j]);
+                destroyEdges.push_back({i, j, destroyCost}); // Destroying cost
+            } else if (i < j) { // Only consider build costs once
+                int buildCost = letterToCost(buildLine[j]);
+                buildEdges.push_back({i, j, buildCost}); // Building cost
+            }
         }
     }
 
-    // Sort the build edges in ascending order of cost
-    sort(edges.begin(), edges.end());
-
-    // Add build edges to form MST
-    for (auto& edge : edges) {
-        int cost = edge.first;
-        int u = edge.second.first;
-        int v = edge.second.second;
-
-        if (dsu.unite(u, v)) {
-            totalCost += cost;
+    // First, handle destroying existing roads
+    int destroyCostTotal = 0;
+    for (const auto& edge : destroyEdges) {
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            uf.unite(edge.u, edge.v);
+            destroyCostTotal += edge.cost; // Destroying cost
         }
     }
 
+    // Now, we handle building new roads to connect disconnected components
+    sort(buildEdges.begin(), buildEdges.end(), [](const Edge &a, const Edge &b) {
+        return a.cost < b.cost;
+    });
+
+    int buildCostTotal = 0;
+    for (const auto& edge : buildEdges) {
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            uf.unite(edge.u, edge.v);
+            buildCostTotal += edge.cost; // Building cost
+        }
+    }
+
+    // Final total cost includes building and destroying costs
+    int totalCost = destroyCostTotal + buildCostTotal;
     cout << totalCost << endl;
 
     return 0;
