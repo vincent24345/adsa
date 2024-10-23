@@ -65,7 +65,7 @@ int main() {
     getline(ss, buildStr, ' ');
     getline(ss, destroyStr, ' ');
 
-    // Parse the country matrix
+    // Parse the country matrix (adjacency matrix)
     vector<vector<int>> country;
     stringstream countryStream(countryStr);
     string line;
@@ -94,24 +94,24 @@ int main() {
         for (int j = 0; j < n; ++j) {
             if (country[i][j] == 1) { // Existing road
                 int destroyCost = letterToCost(destroyLine[j]);
-                destroyEdges.push_back({i, j, destroyCost}); // Destroying cost
+                destroyEdges.push_back({i, j, destroyCost}); // Add destroying cost
             } else if (i < j) { // Only consider build costs once
                 int buildCost = letterToCost(buildLine[j]);
-                buildEdges.push_back({i, j, buildCost}); // Building cost
+                buildEdges.push_back({i, j, buildCost}); // Add building cost
             }
         }
     }
 
-    // First, handle destroying existing roads
+    // First, destroy unnecessary roads
     int destroyCostTotal = 0;
     for (const auto& edge : destroyEdges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            uf.unite(edge.u, edge.v);
-            destroyCostTotal += edge.cost; // Destroying cost
+            uf.unite(edge.u, edge.v); // Merge sets (destroy road)
+            destroyCostTotal += edge.cost;
         }
     }
 
-    // Now, we handle building new roads to connect disconnected components
+    // Now, build necessary roads to connect disconnected components
     sort(buildEdges.begin(), buildEdges.end(), [](const Edge &a, const Edge &b) {
         return a.cost < b.cost;
     });
@@ -119,12 +119,12 @@ int main() {
     int buildCostTotal = 0;
     for (const auto& edge : buildEdges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            uf.unite(edge.u, edge.v);
-            buildCostTotal += edge.cost; // Building cost
+            uf.unite(edge.u, edge.v); // Merge sets (build road)
+            buildCostTotal += edge.cost;
         }
     }
 
-    // Final total cost includes building and destroying costs
+    // Final total cost includes both building and destroying costs
     int totalCost = destroyCostTotal + buildCostTotal;
     cout << totalCost << endl;
 
