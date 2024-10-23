@@ -1,137 +1,121 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <algorithm>
 #include <sstream>
+#include <algorithm>
+#include <unordered_map>
+#include <tuple>
 
 using namespace std;
 
-// Function to convert character to corresponding cost value
-int charToCost(char c) {
-    if ('A' <= c && c <= 'Z') {
-        return c - 'A';
-    } else if ('a' <= c && c <= 'z') {
-        return c - 'a' + 26;
+struct Edge {
+    int u, v, cost;
+};
+
+// Disjoint Set Union (Union-Find) for Kruskal's algorithm
+class UnionFind {
+public:
+    UnionFind(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
     }
-    return INT_MAX;
+
+    int find(int u) {
+        if (parent[u] != u)
+            parent[u] = find(parent[u]);
+        return parent[u];
+    }
+
+    void unite(int u, int v) {
+        int rootU = find(u);
+        int rootV = find(v);
+        if (rootU != rootV) {
+            if (rank[rootU] < rank[rootV]) {
+                parent[rootU] = rootV;
+            } else if (rank[rootU] > rank[rootV]) {
+                parent[rootV] = rootU;
+            } else {
+                parent[rootV] = rootU;
+                rank[rootU]++;
+            }
+        }
+    }
+
+private:
+    vector<int> parent, rank;
+};
+
+// Function to convert letter costs to numerical values
+int letterToCost(char c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    return 0; // Should not happen
 }
 
-// Function to parse the input string into matrices
-void parseInput(const string& input, vector<vector<int>>& country, 
-                vector<vector<int>>& build, vector<vector<int>>& destroy) {
+int main() {
+    string input;
+    getline(cin, input);
+
+    // Split the input into three parts
     stringstream ss(input);
     string countryStr, buildStr, destroyStr;
-
     getline(ss, countryStr, ' ');
     getline(ss, buildStr, ' ');
     getline(ss, destroyStr, ' ');
 
     // Parse the country matrix
+    vector<vector<int>> country;
     stringstream countryStream(countryStr);
-    string row;
-    while (getline(countryStream, row, ',')) {
-        vector<int> temp;
-        for (char c : row) {
-            temp.push_back(c - '0');
+    string line;
+    while (getline(countryStream, line, ',')) {
+        vector<int> row;
+        for (char c : line) {
+            row.push_back(c - '0');
         }
-        country.push_back(temp);
+        country.push_back(row);
     }
 
-    // Parse the build cost matrix
-    stringstream buildStream(buildStr);
-    while (getline(buildStream, row, ',')) {
-        vector<int> temp;
-        for (char c : row) {
-            temp.push_back(charToCost(c));
-        }
-        build.push_back(temp);
-    }
+    int n = country.size();
+    UnionFind uf(n);
+    vector<Edge> edges;
 
-    // Parse the destroy cost matrix
-    stringstream destroyStream(destroyStr);
-    while (getline(destroyStream, row, ',')) {
-        vector<int> temp;
-        for (char c : row) {
-            temp.push_back(charToCost(c));
-        }
-        destroy.push_back(temp);
-    }
-}
+    // Parse build costs and destroy costs and create edges
+    for (int i = 0; i < n; ++i) {
+        stringstream buildStream(buildStr);
+        stringstream destroyStream(destroyStr);
+        string buildLine, destroyLine;
 
-// Function to find connected components using DFS
-void dfs(int node, vector<bool>& visited, vector<int>& component, const vector<vector<int>>& country) {
-    visited[node] = true;
-    component.push_back(node);
-    for (int neighbor = 0; neighbor < country.size(); ++neighbor) {
-        if (country[node][neighbor] == 1 && !visited[neighbor]) {
-            dfs(neighbor, visited, component, country);
-        }
-    }
-}
+        getline(buildStream, buildLine, ',');
+        getline(destroyStream, destroyLine, ',');
 
-vector<vector<int>> findConnectedComponents(const vector<vector<int>>& country) {
-    int N = country.size();
-    vector<bool> visited(N, false);
-    vector<vector<int>> components;
-
-    for (int i = 0; i < N; ++i) {
-        if (!visited[i]) {
-            vector<int> component;
-            dfs(i, visited, component, country);
-            components.push_back(component);
-        }
-    }
-    return components;
-}
-
-// Function to calculate the minimum cost to reconstruct the road system
-int calculateCosts(const vector<vector<int>>& components, 
-                   const vector<vector<int>>& build, 
-                   const vector<vector<int>>& destroy, 
-                   const vector<vector<int>>& country) {
-    int totalCost = 0;
-
-    for (const auto& component : components) {
-        vector<pair<int, int>> edges; // (destroy_cost, city1)
-        int destroyCost = 0;
-
-        for (size_t i = 0; i < component.size(); ++i) {
-            for (size_t j = i + 1; j < component.size(); ++j) {
-                int u = component[i];
-                int v = component[j];
-                if (country[u][v] == 1) {
-                    edges.push_back({destroy[u][v], u});
-                    destroyCost += destroy[u][v];
-                }
+        for (int j = 0; j < n; ++j) {
+            if (country[i][j] == 1) { // Existing road
+                int destroyCost = letterToCost(destroyLine[j]);
+                edges.push_back({i, j, destroyCost}); // Destroying cost
+            } else if (i < j) { // Only consider build costs once
+                int buildCost = letterToCost(buildLine[j]);
+                edges.push_back({i, j, buildCost}); // Building cost
             }
         }
+    }
 
-        // Sort edges by destroy cost
-        sort(edges.begin(), edges.end());
+    // Sort edges by cost
+    sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
+        return a.cost < b.cost;
+    });
 
-        // Remove the most expensive road to ensure a single path
-        if (!edges.empty()) {
-            totalCost += destroyCost - edges.back().first; // Remove the most expensive road
+    int totalCost = 0;
+
+    // Kruskal's algorithm to construct the MST
+    for (const Edge &edge : edges) {
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            totalCost += edge.cost;
+            uf.unite(edge.u, edge.v);
         }
     }
 
-    return totalCost;
-}
-
-// Main function to build the minimum cost road network
-int buildMinimumCostRoadNetwork(const string& input) {
-    vector<vector<int>> country, build, destroy;
-    parseInput(input, country, build, destroy);
-    
-    vector<vector<int>> components = findConnectedComponents(country);
-    int minCost = calculateCosts(components, build, destroy, country);
-
-    return minCost;
-}
-
-int main() {
-    // Sample input
-    string input = "011000,101000,110000,000011,000101,000110 ABDFFF,BACFFF,DCAFFF,FFFABD,FFFBAC,FFFDCA ABDFFF,BACFFF,DCAFFF,FFFABD,FFFBAC,FFFDCA";
-    cout << buildMinimumCostRoadNetwork(input) << endl; // Expected output: 7
+    cout << totalCost << endl;
     return 0;
 }
