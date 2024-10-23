@@ -108,12 +108,28 @@ int main() {
 
     int totalCost = 0;
 
-    // Kruskal's algorithm to construct the MST
+    // First, connect all components and calculate costs
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            totalCost += edge.cost;
+            // Use build costs where applicable
+            if (country[edge.u][edge.v] == 0) {
+                totalCost += edge.cost; // Building cost
+            } else {
+                totalCost += edge.cost; // Destroying cost
+            }
             uf.unite(edge.u, edge.v);
         }
+    }
+
+    // Count how many components we have
+    int components = 0;
+    for (int i = 0; i < n; ++i) {
+        if (uf.find(i) == i) {
+            components++;
+        }
+    }
+    if (components > 1) {
+        totalCost += (components - 1); // Cost of connecting components with new roads
     }
 
     cout << totalCost << endl;
