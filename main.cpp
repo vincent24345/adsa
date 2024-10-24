@@ -1,97 +1,120 @@
 #include <iostream>
 #include <vector>
-#include <queue>
 #include <string>
-#include <limits>
+#include <sstream>
+#include <algorithm>
 
 using namespace std;
 
-const int INF = numeric_limits<int>::max();
+struct Edge {
+    int u, v, cost;
+};
 
-int charToCost(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A';
-    else return c - 'a' + 26; // Assuming a-z maps to 26-51
-}
-
-int main() {
-    int N;  // Number of cities
-    cin >> N;
-
-    if (N <= 0) {
-        cout << "Invalid number of cities." << endl;
-        return 1;
+// Disjoint Set Union (Union-Find) for Kruskal's algorithm
+class UnionFind {
+public:
+    UnionFind(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
     }
 
-    // Initialize matrices
-    vector<vector<int>> country(N, vector<int>(N, 0));
-    vector<vector<int>> build(N, vector<int>(N, INF));
-    vector<vector<int>> destroy(N, vector<int>(N, INF));
-
-    string country_input, build_input, destroy_input;
-
-    // Read inputs for the country representation, building costs, and destruction costs
-    cin >> country_input >> build_input >> destroy_input;
-
-    if (country_input.length() != N * N || build_input.length() != N * N || destroy_input.length() != N * N) {
-        cout << "Input string length mismatch." << endl;
-        return 1;
+    int find(int u) {
+        if (parent[u] != u)
+            parent[u] = find(parent[u]);
+        return parent[u];
     }
 
-    // Parse the input strings into respective matrices
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            int idx = i * N + j;
-            country[i][j] = (country_input[idx] == '1') ? 1 : 0;
-            build[i][j] = charToCost(build_input[j]);
-            destroy[i][j] = (country[i][j] == 1) ? charToCost(destroy_input[j]) : INF;
-        }
-    }
-
-    // Prim's Algorithm to find the minimum spanning tree
-    vector<bool> inMST(N, false);
-    vector<int> minEdge(N, INF);
-    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
-
-    // Start from any city, say city 0
-    minEdge[0] = 0;
-    pq.push({0, 0}); // {cost, city}
-
-    int totalCost = 0;
-
-    while (!pq.empty()) {
-        int cost = pq.top().first;
-        int city = pq.top().second;
-        pq.pop();
-
-        // If the city is already in the MST, skip it
-        if (inMST[city]) continue;
-
-        // Include this city in the MST
-        inMST[city] = true;
-        totalCost += cost;
-
-        // Update the minEdge for the neighboring cities
-        for (int nextCity = 0; nextCity < N; ++nextCity) {
-            // If there's a road, consider destruction cost
-            if (country[city][nextCity] == 1) {
-                int destroyCost = destroy[city][nextCity];
-                if (!inMST[nextCity] && destroyCost < minEdge[nextCity]) {
-                    minEdge[nextCity] = destroyCost;
-                    pq.push({destroyCost, nextCity});
-                }
+    void unite(int u, int v) {
+        int rootU = find(u);
+        int rootV = find(v);
+        if (rootU != rootV) {
+            if (rank[rootU] < rank[rootV]) {
+                parent[rootU] = rootV;
+            } else if (rank[rootU] > rank[rootV]) {
+                parent[rootV] = rootU;
             } else {
-                // If no road exists, consider building cost
-                int buildCost = build[city][nextCity];
-                if (!inMST[nextCity] && buildCost < minEdge[nextCity]) {
-                    minEdge[nextCity] = buildCost;
-                    pq.push({buildCost, nextCity});
-                }
+                parent[rootV] = rootU;
+                rank[rootU]++;
             }
         }
     }
 
-    // Output the total minimal cost
-    cout << totalCost << endl;
+private:
+    vector<int> parent, rank;
+};
 
+// Function to convert letter costs to numerical values
+int letterToCost(char c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    return 0; // Should not happen
+}
+
+int main() {
+    string input;
+    getline(cin, input);
+
+    // Split the input into three parts
+    stringstream ss(input);
+    string countryStr, buildStr, destroyStr;
+    getline(ss, countryStr, ' ');
+    getline(ss, buildStr, ' ');
+    getline(ss, destroyStr, ' ');
+
+    // Parse the country matrix
+    vector<vector<int>> country;
+    stringstream countryStream(countryStr);
+    string line;
+    while (getline(countryStream, line, ',')) {
+        vector<int> row;
+        for (char c : line) {
+            row.push_back(c - '0');
+        }
+        country.push_back(row);
+    }
+
+    int n = country.size();
+    UnionFind uf(n);
+    vector<Edge> edges;
+
+    // Parse build costs and destroy costs and create edges
+    for (int i = 0; i < n; ++i) {
+        stringstream buildStream(buildStr);
+        stringstream destroyStream(destroyStr);
+        string buildLine, destroyLine;
+
+        getline(buildStream, buildLine, ',');
+        getline(destroyStream, destroyLine, ',');
+
+        for (int j = 0; j < n; ++j) {
+            if (country[i][j] == 1) { // Existing road
+                int destroyCost = letterToCost(destroyLine[j]);
+                edges.push_back({i, j, destroyCost}); // Destroying cost
+            }
+            if (i < j && country[i][j] == 0) { // Only consider build costs once
+                int buildCost = letterToCost(buildLine[j]);
+                edges.push_back({i, j, buildCost}); // Building cost
+            }
+        }
+    }
+
+    // Sort edges by cost
+    sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
+        return a.cost < b.cost;
+    });
+
+    int totalCost = 0;
+
+    // Kruskal's algorithm to construct the MST
+    for (const Edge &edge : edges) {
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            totalCost += edge.cost;
+            uf.unite(edge.u, edge.v);
+        }
+    }
+
+    cout << totalCost << endl;
     return 0;
 }
