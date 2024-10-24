@@ -42,9 +42,9 @@ private:
 
 // Convert a letter to a cost
 int letterToCost(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A' + 1;  // Changed to +1 for cost
-    if (c >= 'a' && c <= 'z') return c - 'a' + 27; // Changed to +27 for cost
-    return 0;
+    if (c >= 'A' && c <= 'Z') return c - 'A' + 1;  // A = 1, B = 2, ..., Z = 26
+    if (c >= 'a' && c <= 'z') return c - 'a' + 27; // a = 27, b = 28, ..., z = 52
+    return 0;  // default case for any unexpected input
 }
 
 int main() {
@@ -104,8 +104,9 @@ int main() {
     for (const auto& edge : edgesToDestroy) {
         int destroyCost, u, v;
         tie(destroyCost, u, v) = edge;
-        if (uf.find(u) != uf.find(v)) {
-            totalDestroyCost += destroyCost;  // Add destroy cost if they are not connected
+        if (uf.find(u) == uf.find(v)) {
+            totalDestroyCost += destroyCost;  // Add destroy cost if already connected
+        } else {
             uf.unite(u, v);  // Unite if not connected
         }
     }
