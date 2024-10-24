@@ -86,10 +86,10 @@ int main() {
             if (i != j) {
                 if (country[i][j] == 1) {
                     // Existing road, consider destruction cost
-                    edges.push_back({i, j, letterToCost(destroyStr[i * n + j]), false});
+                    edges.push_back({i, j, letterToCost(destroyStr[i * (n + 1) + j]), false});
                 } else {
                     // No road, consider build cost
-                    edges.push_back({i, j, letterToCost(buildStr[i * n + j]), true});
+                    edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
                 }
             }
         }
