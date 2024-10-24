@@ -3,12 +3,12 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
-#include <queue>
 
 using namespace std;
 
 struct Edge {
     int u, v, cost;
+    bool isBuild;  // true for build, false for destroy
 };
 
 // Disjoint Set Union (Union-Find) for Kruskal's algorithm
@@ -81,17 +81,15 @@ int main() {
     vector<Edge> edges;
 
     // Parse build costs and destroy costs and create edges
-    vector<vector<int>> build(n, vector<int>(n));
-    vector<vector<int>> destroy(n, vector<int>(n));
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
-            build[i][j] = letterToCost(buildStr[i * n + j]);
-            destroy[i][j] = letterToCost(destroyStr[i * n + j]);
-            if (i < j) {
+            if (i != j) {
                 if (country[i][j] == 1) {
-                    edges.push_back({i, j, destroy[i][j]}); // Destroying cost
+                    // Existing road, consider destruction cost
+                    edges.push_back({i, j, letterToCost(destroyStr[i * n + j]), false});
                 } else {
-                    edges.push_back({i, j, build[i][j]}); // Building cost
+                    // No road, consider build cost
+                    edges.push_back({i, j, letterToCost(buildStr[i * n + j]), true});
                 }
             }
         }
@@ -106,8 +104,10 @@ int main() {
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            totalCost += edge.cost;
-            uf.unite(edge.u, edge.v);
+            if (edge.isBuild || uf.find(edge.u) == uf.find(edge.v)) {
+                totalCost += edge.cost;
+                uf.unite(edge.u, edge.v);
+            }
         }
     }
 
