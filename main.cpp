@@ -1,102 +1,86 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 #include <string>
 #include <algorithm>
 
 using namespace std;
 
-struct Edge {
-    int u, v, cost;
-    bool isBuild; // true if build, false if destroy
-};
+const int INF = 1e9;
 
-// Union-Find (Disjoint Set) data structure
-class UnionFind {
-    vector<int> parent, rank;
-
-public:
-    UnionFind(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; i++) parent[i] = i;
-    }
-
-    int find(int u) {
-        if (u != parent[u])
-            parent[u] = find(parent[u]);
-        return parent[u];
-    }
-
-    bool unionSets(int u, int v) {
-        int rootU = find(u);
-        int rootV = find(v);
-        if (rootU == rootV) return false;
-
-        if (rank[rootU] < rank[rootV]) parent[rootU] = rootV;
-        else if (rank[rootU] > rank[rootV]) parent[rootV] = rootU;
-        else {
-            parent[rootV] = rootU;
-            rank[rootU]++;
-        }
-        return true;
-    }
-};
-
-// Helper function to convert the cost represented by characters
+// Helper function to convert a character to its corresponding cost
 int charToCost(char c) {
     if (c >= 'A' && c <= 'Z') return c - 'A';
-    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-    return -1; // Should not happen with valid input
+    else return c - 'a' + 26;
 }
 
 int main() {
-    string countryStr, buildStr, destroyStr;
-    cin >> countryStr >> buildStr >> destroyStr;
+    int N;  // Number of cities
+    cin >> N;
 
-    // Parse inputs
-    vector<string> country, build, destroy;
-    int N = countryStr.find(',');
-    while (N != string::npos) {
-        country.push_back(countryStr.substr(0, N));
-        build.push_back(buildStr.substr(0, N));
-        destroy.push_back(destroyStr.substr(0, N));
-        countryStr.erase(0, N + 1);
-        buildStr.erase(0, N + 1);
-        destroyStr.erase(0, N + 1);
-        N = countryStr.find(',');
-    }
-    country.push_back(countryStr);
-    build.push_back(buildStr);
-    destroy.push_back(destroyStr);
+    vector<vector<int>> country(N, vector<int>(N, 0));
+    vector<vector<int>> build(N, vector<int>(N, INF));
+    vector<vector<int>> destroy(N, vector<int>(N, INF));
 
-    int n = country.size();
-    vector<Edge> edges;
+    string country_input, build_input, destroy_input;
 
-    // Process the road network
-    for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++) {
-            if (country[i][j] == '1') {
-                // There is a road between i and j -> consider destroying it
-                edges.push_back({i, j, charToCost(destroy[i][j]), false});
+    // Read inputs for the country representation, building costs, and destruction costs
+    cin >> country_input >> build_input >> destroy_input;
+
+    // Parse the input strings into respective matrices
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            if (country_input[i * N + j] == '1') {
+                country[i][j] = 1;  // There is a road
+                destroy[i][j] = charToCost(destroy_input[j]);
             }
             else {
-                // No road between i and j -> consider building it
-                edges.push_back({i, j, charToCost(build[i][j]), true});
+                country[i][j] = 0;  // No road
+                build[i][j] = charToCost(build_input[j]);
             }
         }
     }
 
-    // Sort edges by cost
-    sort(edges.begin(), edges.end(), [](const Edge& a, const Edge& b) {
-        return a.cost < b.cost;
-    });
+    // Prim's Algorithm to find the minimum spanning tree
+    vector<bool> inMST(N, false);
+    vector<int> minEdge(N, INF);
+    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
 
-    // Apply Kruskal's algorithm to find the minimum cost
-    UnionFind uf(n);
+    // Start from any city, say city 0
+    minEdge[0] = 0;
+    pq.push({0, 0}); // {cost, city}
+
     int totalCost = 0;
 
-    for (const Edge& edge : edges) {
-        if (uf.unionSets(edge.u, edge.v)) {
-            // If the cities are not yet connected, process this edge
-            totalCost += edge.cost;
+    while (!pq.empty()) {
+        int cost = pq.top().first;
+        int city = pq.top().second;
+        pq.pop();
+
+        // If the city is already in the MST, skip it
+        if (inMST[city]) continue;
+
+        // Include this city in the MST
+        inMST[city] = true;
+        totalCost += cost;
+
+        // Update the minEdge for the neighboring cities
+        for (int nextCity = 0; nextCity < N; ++nextCity) {
+            // If there's a road, consider destruction cost
+            if (country[city][nextCity] == 1) {
+                int destroyCost = destroy[city][nextCity];
+                if (!inMST[nextCity] && destroyCost < minEdge[nextCity]) {
+                    minEdge[nextCity] = destroyCost;
+                    pq.push({destroyCost, nextCity});
+                }
+            } else {
+                // If no road exists, consider building cost
+                int buildCost = build[city][nextCity];
+                if (!inMST[nextCity] && buildCost < minEdge[nextCity]) {
+                    minEdge[nextCity] = buildCost;
+                    pq.push({buildCost, nextCity});
+                }
+            }
         }
     }
 
