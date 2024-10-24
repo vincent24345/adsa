@@ -1,100 +1,107 @@
 #include <iostream>
 #include <vector>
+#include <string>
 #include <algorithm>
 
 using namespace std;
 
-const int MAXN = 55;
-int parent[MAXN], rank_[MAXN];
-
-// Helper function to convert the letter representation to an integer cost
-int convertCost(char c) {
-    if ('A' <= c && c <= 'Z') return c - 'A';
-    if ('a' <= c && c <= 'z') return c - 'a' + 26;
-    return 0; // Should not happen with valid input
-}
-
-// Union-Find (Disjoint Set) methods for Kruskal's algorithm
-int find(int u) {
-    if (parent[u] != u) {
-        parent[u] = find(parent[u]);
-    }
-    return parent[u];
-}
-
-void unionSets(int u, int v) {
-    int rootU = find(u);
-    int rootV = find(v);
-    if (rootU != rootV) {
-        if (rank_[rootU] > rank_[rootV]) {
-            parent[rootV] = rootU;
-        } else if (rank_[rootU] < rank_[rootV]) {
-            parent[rootU] = rootV;
-        } else {
-            parent[rootV] = rootU;
-            rank_[rootU]++;
-        }
-    }
-}
-
-// Edge structure to store the cost and the nodes
 struct Edge {
     int u, v, cost;
-    bool toDestroy; // true if this is an existing road to destroy
+    bool isBuild; // true if build, false if destroy
+};
 
-    bool operator<(const Edge& other) const {
-        return cost < other.cost;
+// Union-Find (Disjoint Set) data structure
+class UnionFind {
+    vector<int> parent, rank;
+
+public:
+    UnionFind(int n) : parent(n), rank(n, 0) {
+        for (int i = 0; i < n; i++) parent[i] = i;
+    }
+
+    int find(int u) {
+        if (u != parent[u])
+            parent[u] = find(parent[u]);
+        return parent[u];
+    }
+
+    bool unionSets(int u, int v) {
+        int rootU = find(u);
+        int rootV = find(v);
+        if (rootU == rootV) return false;
+
+        if (rank[rootU] < rank[rootV]) parent[rootU] = rootV;
+        else if (rank[rootU] > rank[rootV]) parent[rootV] = rootU;
+        else {
+            parent[rootV] = rootU;
+            rank[rootU]++;
+        }
+        return true;
     }
 };
+
+// Helper function to convert the cost represented by characters
+int charToCost(char c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    return -1; // Should not happen with valid input
+}
 
 int main() {
     string countryStr, buildStr, destroyStr;
     cin >> countryStr >> buildStr >> destroyStr;
 
-    // Split the input strings into 2D arrays for country, build, destroy
-    vector<vector<int>> country;
-    vector<vector<int>> build;
-    vector<vector<int>> destroy;
-    int N = 0;
-    for (size_t i = 0; i < countryStr.length(); ++i) {
-        if (countryStr[i] == ',') continue;
-        int row = i / (N + 1);
-        if (row >= N) N++;
-        country[row].push_back(countryStr[i] - '0');
-        build[row].push_back(convertCost(buildStr[i]));
-        destroy[row].push_back(convertCost(destroyStr[i]));
+    // Parse inputs
+    vector<string> country, build, destroy;
+    int N = countryStr.find(',');
+    while (N != string::npos) {
+        country.push_back(countryStr.substr(0, N));
+        build.push_back(buildStr.substr(0, N));
+        destroy.push_back(destroyStr.substr(0, N));
+        countryStr.erase(0, N + 1);
+        buildStr.erase(0, N + 1);
+        destroyStr.erase(0, N + 1);
+        N = countryStr.find(',');
     }
+    country.push_back(countryStr);
+    build.push_back(buildStr);
+    destroy.push_back(destroyStr);
 
-    // Prepare for Kruskal's algorithm
+    int n = country.size();
     vector<Edge> edges;
-    for (int i = 0; i < N; ++i) {
-        for (int j = i + 1; j < N; ++j) {
-            if (country[i][j] == 1) {
-                edges.push_back({i, j, destroy[i][j], true}); // Destroy road
+
+    // Process the road network
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (country[i][j] == '1') {
+                // There is a road between i and j -> consider destroying it
+                edges.push_back({i, j, charToCost(destroy[i][j]), false});
             }
-            edges.push_back({i, j, build[i][j], false}); // Build road
+            else {
+                // No road between i and j -> consider building it
+                edges.push_back({i, j, charToCost(build[i][j]), true});
+            }
         }
     }
 
-    // Sort edges by cost (Kruskal's algorithm)
-    sort(edges.begin(), edges.end());
+    // Sort edges by cost
+    sort(edges.begin(), edges.end(), [](const Edge& a, const Edge& b) {
+        return a.cost < b.cost;
+    });
 
-    // Initialize Union-Find structures
-    for (int i = 0; i < N; ++i) {
-        parent[i] = i;
-        rank_[i] = 0;
-    }
-
+    // Apply Kruskal's algorithm to find the minimum cost
+    UnionFind uf(n);
     int totalCost = 0;
+
     for (const Edge& edge : edges) {
-        if (find(edge.u) != find(edge.v)) {
-            unionSets(edge.u, edge.v);
+        if (uf.unionSets(edge.u, edge.v)) {
+            // If the cities are not yet connected, process this edge
             totalCost += edge.cost;
-        } else if (edge.toDestroy) {
-            totalCost += edge.cost; // Destroy the redundant road
         }
     }
 
+    // Output the total minimal cost
     cout << totalCost << endl;
+
     return 0;
 }
