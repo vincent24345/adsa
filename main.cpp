@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <queue>
 
 using namespace std;
 
@@ -47,7 +48,6 @@ private:
 
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
-    // Handle both uppercase and lowercase letters appropriately
     if (c >= 'A' && c <= 'Z') return c - 'A';
     if (c >= 'a' && c <= 'z') return c - 'a' + 26;
     return 0; // Should not happen
@@ -81,23 +81,18 @@ int main() {
     vector<Edge> edges;
 
     // Parse build costs and destroy costs and create edges
+    vector<vector<int>> build(n, vector<int>(n));
+    vector<vector<int>> destroy(n, vector<int>(n));
     for (int i = 0; i < n; ++i) {
-        stringstream buildStream(buildStr);
-        stringstream destroyStream(destroyStr);
-        string buildLine, destroyLine;
-
-        getline(buildStream, buildLine, ',');
-        getline(destroyStream, destroyLine, ',');
-
         for (int j = 0; j < n; ++j) {
-            if (country[i][j] == 1) { // Existing road
-                // For existing roads, we don't need to add a cost for destroying them
-                // You can add this line if you want to consider potential destruction costs for existing roads:
-                // int destroyCost = letterToCost(destroyLine[j]);
-                // edges.push_back({i, j, destroyCost}); // Destroying cost
-            } else if (i < j) { // Only consider build costs once and only when there's no existing road
-                int buildCost = letterToCost(buildLine[j]);
-                edges.push_back({i, j, buildCost}); // Building cost
+            build[i][j] = letterToCost(buildStr[i * n + j]);
+            destroy[i][j] = letterToCost(destroyStr[i * n + j]);
+            if (i < j) {
+                if (country[i][j] == 1) {
+                    edges.push_back({i, j, destroy[i][j]}); // Destroying cost
+                } else {
+                    edges.push_back({i, j, build[i][j]}); // Building cost
+                }
             }
         }
     }
@@ -108,7 +103,6 @@ int main() {
     });
 
     int totalCost = 0;
-
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
