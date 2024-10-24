@@ -42,8 +42,8 @@ private:
 
 // Convert a letter to a cost
 int letterToCost(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A';
-    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= 'A' && c <= 'Z') return c - 'A' + 1;  // Changed to +1 for cost
+    if (c >= 'a' && c <= 'z') return c - 'a' + 27; // Changed to +27 for cost
     return 0;
 }
 
@@ -71,8 +71,8 @@ int main() {
 
     int n = country.size();
     UnionFind uf(n);
-    vector<tuple<int, int, int>> edgesToBuild;  // (cost, u, v)
-    vector<tuple<int, int, int>> edgesToDestroy;  // (cost, u, v)
+    vector<tuple<int, int, int>> edgesToBuild;     // (cost, u, v)
+    vector<tuple<int, int, int>> edgesToDestroy;   // (cost, u, v)
 
     // Parsing build and destroy cost matrices
     stringstream buildStream(buildStr);
@@ -104,9 +104,8 @@ int main() {
     for (const auto& edge : edgesToDestroy) {
         int destroyCost, u, v;
         tie(destroyCost, u, v) = edge;
-        if (uf.find(u) == uf.find(v)) {
-            totalDestroyCost += destroyCost;  // Add destroy cost if already connected
-        } else {
+        if (uf.find(u) != uf.find(v)) {
+            totalDestroyCost += destroyCost;  // Add destroy cost if they are not connected
             uf.unite(u, v);  // Unite if not connected
         }
     }
