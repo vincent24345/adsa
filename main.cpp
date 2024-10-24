@@ -47,6 +47,7 @@ private:
 
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
+    // Handle both uppercase and lowercase letters appropriately
     if (c >= 'A' && c <= 'Z') return c - 'A';
     if (c >= 'a' && c <= 'z') return c - 'a' + 26;
     return 0; // Should not happen
@@ -90,10 +91,11 @@ int main() {
 
         for (int j = 0; j < n; ++j) {
             if (country[i][j] == 1) { // Existing road
-                int destroyCost = letterToCost(destroyLine[j]);
-                edges.push_back({i, j, destroyCost}); // Destroying cost
-            }
-            if (i < j && country[i][j] == 0) { // Only consider build costs once
+                // For existing roads, we don't need to add a cost for destroying them
+                // You can add this line if you want to consider potential destruction costs for existing roads:
+                // int destroyCost = letterToCost(destroyLine[j]);
+                // edges.push_back({i, j, destroyCost}); // Destroying cost
+            } else if (i < j) { // Only consider build costs once and only when there's no existing road
                 int buildCost = letterToCost(buildLine[j]);
                 edges.push_back({i, j, buildCost}); // Building cost
             }
