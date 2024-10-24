@@ -2,22 +2,27 @@
 #include <vector>
 #include <queue>
 #include <string>
-#include <algorithm>
+#include <limits>
 
 using namespace std;
 
-const int INF = 1e9;
+const int INF = numeric_limits<int>::max();
 
-// Helper function to convert a character to its corresponding cost
 int charToCost(char c) {
     if (c >= 'A' && c <= 'Z') return c - 'A';
-    else return c - 'a' + 26;
+    else return c - 'a' + 26; // Assuming a-z maps to 26-51
 }
 
 int main() {
     int N;  // Number of cities
     cin >> N;
 
+    if (N <= 0) {
+        cout << "Invalid number of cities." << endl;
+        return 1;
+    }
+
+    // Initialize matrices
     vector<vector<int>> country(N, vector<int>(N, 0));
     vector<vector<int>> build(N, vector<int>(N, INF));
     vector<vector<int>> destroy(N, vector<int>(N, INF));
@@ -27,17 +32,18 @@ int main() {
     // Read inputs for the country representation, building costs, and destruction costs
     cin >> country_input >> build_input >> destroy_input;
 
+    if (country_input.length() != N * N || build_input.length() != N * N || destroy_input.length() != N * N) {
+        cout << "Input string length mismatch." << endl;
+        return 1;
+    }
+
     // Parse the input strings into respective matrices
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            if (country_input[i * N + j] == '1') {
-                country[i][j] = 1;  // There is a road
-                destroy[i][j] = charToCost(destroy_input[j]);
-            }
-            else {
-                country[i][j] = 0;  // No road
-                build[i][j] = charToCost(build_input[j]);
-            }
+            int idx = i * N + j;
+            country[i][j] = (country_input[idx] == '1') ? 1 : 0;
+            build[i][j] = charToCost(build_input[j]);
+            destroy[i][j] = (country[i][j] == 1) ? charToCost(destroy_input[j]) : INF;
         }
     }
 
