@@ -70,7 +70,7 @@ int main() {
         }
     }
 
-    // Sort edges to prefer lower-cost operations
+    // Sort edges to prefer lower-cost operations (destroy or build)
     sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
         return min(a.buildCost, a.destroyCost) < min(b.buildCost, b.destroyCost);
     });
@@ -80,22 +80,21 @@ int main() {
 
     for (const Edge &edge : edges) {
         int u = edge.u, v = edge.v;
-        if (uf.find(u) != uf.find(v)) {
-            if (country[u][v] == 1) {
-                // Road exists; decide to keep or destroy
-                if (edge.destroyCost < edge.buildCost) {
-                    // Destroying is cheaper; add destroyCost
-                    totalCost += edge.destroyCost;
-                } else {
-                    // Building is cheaper; add buildCost
-                    totalCost += edge.buildCost;
-                }
-                uf.unite(u, v);
+        bool connected = (uf.find(u) == uf.find(v));
+
+        if (country[u][v] == 1) {  // Road exists
+            if (connected) {
+                // Only destroy if it reduces cost without disconnecting
+                totalCost += edge.destroyCost;
             } else {
-                // No existing road; must build it
-                totalCost += edge.buildCost;
+                // Decide to either keep or replace the road
+                int cost = min(edge.buildCost, edge.destroyCost);
+                totalCost += cost;
                 uf.unite(u, v);
             }
+        } else if (!connected) {  // No existing road
+            totalCost += edge.buildCost;
+            uf.unite(u, v);
         }
     }
 
