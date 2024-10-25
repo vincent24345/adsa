@@ -80,7 +80,7 @@ int main() {
     UnionFind uf(n);
     vector<Edge> edges;
 
-    // Parse build costs and destroy costs and create edges
+    // Parse build and destroy costs into matrices for easy access
     vector<vector<int>> buildCosts(n, vector<int>(n));
     vector<vector<int>> destroyCosts(n, vector<int>(n));
 
@@ -104,7 +104,7 @@ int main() {
 
     // Create edges for the graph
     for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
+        for (int j = i + 1; j < n; ++j) {  // Only consider each pair once
             if (country[i][j] == 1) {
                 // Existing road, consider destruction cost
                 edges.push_back({i, j, destroyCosts[i][j], false});
