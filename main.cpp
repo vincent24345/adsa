@@ -3,7 +3,6 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
-
 using namespace std;
 
 struct Edge {
@@ -81,18 +80,18 @@ int main() {
     vector<Edge> edges;
 
     // Parse build costs and destroy costs and create edges
-    int index = 0;
+    int idx = 0;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i != j) {
                 if (country[i][j] == 1) {
                     // Existing road, consider destruction cost
-                    edges.push_back({i, j, letterToCost(destroyStr[index]), false});
+                    edges.push_back({i, j, letterToCost(destroyStr[idx]), false});
                 } else {
                     // No road, consider build cost
-                    edges.push_back({i, j, letterToCost(buildStr[index]), true});
+                    edges.push_back({i, j, letterToCost(buildStr[idx]), true});
                 }
-                index++;
+                idx++;
             }
         }
     }
@@ -103,6 +102,7 @@ int main() {
     });
 
     int totalCost = 0;
+
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
