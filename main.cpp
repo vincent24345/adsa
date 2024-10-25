@@ -82,20 +82,20 @@ int main() {
         int u = edge.u, v = edge.v;
         if (uf.find(u) != uf.find(v)) {
             if (country[u][v] == 1) {
-                // Road exists, choose between keeping or rebuilding
+                // Road exists; decide to keep or destroy
                 if (edge.destroyCost < edge.buildCost) {
+                    // Destroying is cheaper; add destroyCost
                     totalCost += edge.destroyCost;
                 } else {
+                    // Building is cheaper; add buildCost
                     totalCost += edge.buildCost;
                 }
+                uf.unite(u, v);
             } else {
-                // No road, so build it
+                // No existing road; must build it
                 totalCost += edge.buildCost;
+                uf.unite(u, v);
             }
-            uf.unite(u, v);
-        } else if (country[u][v] == 1) {
-            // If cities are already connected but have an existing road, destroy it if beneficial
-            totalCost += edge.destroyCost;
         }
     }
 
