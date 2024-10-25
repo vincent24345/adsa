@@ -81,16 +81,18 @@ int main() {
     vector<Edge> edges;
 
     // Parse build costs and destroy costs and create edges
+    int index = 0;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i != j) {
                 if (country[i][j] == 1) {
                     // Existing road, consider destruction cost
-                    edges.push_back({i, j, letterToCost(destroyStr[i * (n + 1) + j]), false});
+                    edges.push_back({i, j, letterToCost(destroyStr[index]), false});
                 } else {
                     // No road, consider build cost
-                    edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
+                    edges.push_back({i, j, letterToCost(buildStr[index]), true});
                 }
+                index++;
             }
         }
     }
@@ -104,10 +106,8 @@ int main() {
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            if (edge.isBuild || uf.find(edge.u) == uf.find(edge.v)) {
-                totalCost += edge.cost;
-                uf.unite(edge.u, edge.v);
-            }
+            totalCost += edge.cost;
+            uf.unite(edge.u, edge.v);
         }
     }
 
