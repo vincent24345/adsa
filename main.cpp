@@ -80,18 +80,17 @@ int main() {
     vector<Edge> edges;
 
     // Parse build costs and destroy costs and create edges
-    int idx = 0;
+    int buildIdx = 0, destroyIdx = 0;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (i != j) {
                 if (country[i][j] == 1) {
                     // Existing road, consider destruction cost
-                    edges.push_back({i, j, letterToCost(destroyStr[idx]), false});
+                    edges.push_back({i, j, letterToCost(destroyStr[destroyIdx++]), false});
                 } else {
                     // No road, consider build cost
-                    edges.push_back({i, j, letterToCost(buildStr[idx]), true});
+                    edges.push_back({i, j, letterToCost(buildStr[buildIdx++]), true});
                 }
-                idx++;
             }
         }
     }
