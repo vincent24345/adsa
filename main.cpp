@@ -1,100 +1,114 @@
+
 #include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <algorithm>
+
 using namespace std;
 
 struct Edge {
-    int u, v, buildCost, destroyCost;
+    int u, v, cost;
+    bool isBuild;  // true for build, false for destroy
 };
 
+// Disjoint Set Union (Union-Find) for Kruskal's algorithm
 class UnionFind {
 public:
-    UnionFind(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; ++i) parent[i] = i;
+    UnionFind(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
     }
 
     int find(int u) {
-        if (parent[u] != u) parent[u] = find(parent[u]);
+        if (parent[u] != u)
+            parent[u] = find(parent[u]);
         return parent[u];
     }
 
-    bool unite(int u, int v) {
-        int rootU = find(u), rootV = find(v);
+    void unite(int u, int v) {
+        int rootU = find(u);
+        int rootV = find(v);
         if (rootU != rootV) {
-            if (rank[rootU] < rank[rootV]) swap(rootU, rootV);
-            parent[rootV] = rootU;
-            if (rank[rootU] == rank[rootV]) ++rank[rootU];
-            return true;
+            if (rank[rootU] < rank[rootV]) {
+                parent[rootU] = rootV;
+            } else if (rank[rootU] > rank[rootV]) {
+                parent[rootV] = rootU;
+            } else {
+                parent[rootV] = rootU;
+                rank[rootU]++;
+            }
         }
-        return false;
     }
 
 private:
     vector<int> parent, rank;
 };
 
+// Function to convert letter costs to numerical values
 int letterToCost(char c) {
-    return (c >= 'a') ? (c - 'a' + 26) : (c - 'A');
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    return 0; // Should not happen
 }
 
 int main() {
     string input;
     getline(cin, input);
 
+    // Split the input into three parts
     stringstream ss(input);
     string countryStr, buildStr, destroyStr;
     getline(ss, countryStr, ' ');
     getline(ss, buildStr, ' ');
-    getline(ss, destroyStr);
+    getline(ss, destroyStr, ' ');
 
+    // Parse the country matrix
     vector<vector<int>> country;
     stringstream countryStream(countryStr);
     string line;
     while (getline(countryStream, line, ',')) {
         vector<int> row;
-        for (char c : line) row.push_back(c - '0');
+        for (char c : line) {
+            row.push_back(c - '0');
+        }
         country.push_back(row);
     }
 
     int n = country.size();
+    UnionFind uf(n);
     vector<Edge> edges;
 
-    int buildIdx = 0, destroyIdx = 0;
+    // Parse build costs and destroy costs and create edges
     for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            int buildCost = letterToCost(buildStr[buildIdx++]);
-            int destroyCost = letterToCost(destroyStr[destroyIdx++]);
-            edges.push_back({i, j, buildCost, destroyCost});
+        for (int j = 0; j < n; ++j) {
+            if (i != j) {
+                if (country[i][j] == 1) {
+                    // Existing road, consider destruction cost
+                    edges.push_back({i, j, letterToCost(destroyStr[i * (n + 1) + j]), false});
+                } else {
+                    // No road, consider build cost
+                    edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
+                }
+            }
         }
     }
 
-    // Sort edges to prefer lower-cost operations (destroy or build)
+    // Sort edges by cost
     sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
-        return min(a.buildCost, a.destroyCost) < min(b.buildCost, b.destroyCost);
+        return a.cost < b.cost;
     });
 
-    UnionFind uf(n);
     int totalCost = 0;
-
+    // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
-        int u = edge.u, v = edge.v;
-        bool connected = (uf.find(u) == uf.find(v));
-
-        if (country[u][v] == 1) {  // Road exists
-            if (connected) {
-                // Only destroy if it reduces cost without disconnecting
-                totalCost += edge.destroyCost;
-            } else {
-                // Decide to either keep or replace the road
-                int cost = min(edge.buildCost, edge.destroyCost);
-                totalCost += cost;
-                uf.unite(u, v);
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            if (edge.isBuild || uf.find(edge.u) == uf.find(edge.v)) {
+                totalCost += edge.cost;
+                uf.unite(edge.u, edge.v);
             }
-        } else if (!connected) {  // No existing road
-            totalCost += edge.buildCost;
-            uf.unite(u, v);
         }
     }
 
