@@ -6,8 +6,7 @@
 using namespace std;
 
 struct Edge {
-    int u, v, cost;
-    bool isBuild;  // true for build, false for destroy
+    int u, v, buildCost, destroyCost;
 };
 
 class UnionFind {
@@ -21,13 +20,15 @@ public:
         return parent[u];
     }
 
-    void unite(int u, int v) {
+    bool unite(int u, int v) {
         int rootU = find(u), rootV = find(v);
         if (rootU != rootV) {
             if (rank[rootU] < rank[rootV]) swap(rootU, rootV);
             parent[rootV] = rootU;
             if (rank[rootU] == rank[rootV]) ++rank[rootU];
+            return true;
         }
+        return false;
     }
 
 private:
@@ -58,32 +59,36 @@ int main() {
     }
 
     int n = country.size();
-    UnionFind uf(n);
     vector<Edge> edges;
 
     int buildIdx = 0, destroyIdx = 0;
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            if (country[i][j] == 1) {
-                int destroyCost = letterToCost(destroyStr[destroyIdx++]);
-                edges.push_back({i, j, destroyCost, false});
-                edges.push_back({i, j, 0, true});  // Option to keep the road
-            } else {
-                int buildCost = letterToCost(buildStr[buildIdx++]);
-                edges.push_back({i, j, buildCost, true});
-            }
+            int buildCost = letterToCost(buildStr[buildIdx++]);
+            int destroyCost = letterToCost(destroyStr[destroyIdx++]);
+            edges.push_back({i, j, buildCost, destroyCost});
         }
     }
 
+    // Sort edges by the minimum of build and destroy costs
     sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
-        return a.cost < b.cost;
+        return min(a.buildCost, a.destroyCost) < min(b.buildCost, b.destroyCost);
     });
 
+    UnionFind uf(n);
     int totalCost = 0;
+
     for (const Edge &edge : edges) {
-        if (uf.find(edge.u) != uf.find(edge.v)) {
-            totalCost += edge.cost;
-            uf.unite(edge.u, edge.v);
+        int u = edge.u, v = edge.v;
+        if (uf.find(u) != uf.find(v)) {
+            if (country[u][v] == 1) {
+                // Road exists, decide whether to keep or destroy and rebuild
+                totalCost += min(0, edge.destroyCost + edge.buildCost);
+            } else {
+                // No road, build it
+                totalCost += edge.buildCost;
+            }
+            uf.unite(u, v);
         }
     }
 
