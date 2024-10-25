@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <vector>
 #include <string>
@@ -82,16 +81,36 @@ int main() {
     vector<Edge> edges;
 
     // Parse build costs and destroy costs and create edges
+    vector<vector<int>> buildCosts(n, vector<int>(n));
+    vector<vector<int>> destroyCosts(n, vector<int>(n));
+
+    // Parse build costs
+    stringstream buildStream(buildStr);
     for (int i = 0; i < n; ++i) {
+        getline(buildStream, line, ',');
         for (int j = 0; j < n; ++j) {
-            if (i != j) {
-                if (country[i][j] == 1) {
-                    // Existing road, consider destruction cost
-                    edges.push_back({i, j, letterToCost(destroyStr[i * (n + 1) + j]), false});
-                } else {
-                    // No road, consider build cost
-                    edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
-                }
+            buildCosts[i][j] = letterToCost(line[j]);
+        }
+    }
+
+    // Parse destroy costs
+    stringstream destroyStream(destroyStr);
+    for (int i = 0; i < n; ++i) {
+        getline(destroyStream, line, ',');
+        for (int j = 0; j < n; ++j) {
+            destroyCosts[i][j] = letterToCost(line[j]);
+        }
+    }
+
+    // Create edges for the graph
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            if (country[i][j] == 1) {
+                // Existing road, consider destruction cost
+                edges.push_back({i, j, destroyCosts[i][j], false});
+            } else {
+                // No road, consider build cost
+                edges.push_back({i, j, buildCosts[i][j], true});
             }
         }
     }
@@ -105,10 +124,8 @@ int main() {
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            if (edge.isBuild || uf.find(edge.u) == uf.find(edge.v)) {
-                totalCost += edge.cost;
-                uf.unite(edge.u, edge.v);
-            }
+            totalCost += edge.cost;
+            uf.unite(edge.u, edge.v);
         }
     }
 
