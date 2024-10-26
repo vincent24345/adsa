@@ -95,12 +95,7 @@ int main() {
 
     int n = country.size();
 
-    // Check if the country is already optimally connected
-    if (isConnectedComponent(country)) {
-        cout << 0 << endl;
-        return 0;
-    }
-
+    // Set up Union-Find for connected components
     UnionFind uf(n);
     vector<Edge> edges;
 
@@ -133,20 +128,21 @@ int main() {
         }
     }
 
-    // Sort edges by cost
+    // Sort edges by cost (first adding low-cost builds/destroys)
     sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
         return a.cost < b.cost;
     });
 
-    // Kruskal's algorithm with modification
     int totalCost = 0;
 
-    // Add edges to the total cost based on connection needs
+    // Apply Kruskal’s algorithm with edge consideration
     for (const Edge &edge : edges) {
-        // Check if edge connects different components
         if (uf.find(edge.u) != uf.find(edge.v)) {
             uf.unite(edge.u, edge.v);
-            totalCost += edge.cost;  // Add cost of either building or destroying edges
+            totalCost += edge.cost;  // Add cost of building or retaining edges as needed
+        } else if (!edge.isBuild) {
+            // Destroy an unnecessary edge if connected already
+            totalCost += edge.cost;
         }
     }
 
