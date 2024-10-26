@@ -147,16 +147,23 @@ int main() {
         return a.cost < b.cost;
     });
 
+    // Initialize the MST cost with the cost of destroying existing edges
     int totalCost = 0;
-    int edgeCount = 0;
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            if (country[i][j] == 1) {
+                totalCost += destroyCosts[i][j];
+            }
+        }
+    }
 
-    // Kruskal's algorithm for MST construction
+    // Kruskal's algorithm with modification
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
             uf.unite(edge.u, edge.v);
-            totalCost += edge.cost;  // Add cost of the edge (build or destroy)
-            edgeCount++;
-            if (edgeCount == n - 1) break;  // Minimum edges for full connection
+            if (edge.isBuild) {
+                totalCost += edge.cost;  // Add cost of building a new edge
+            }
         }
     }
 
