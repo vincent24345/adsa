@@ -68,9 +68,9 @@ bool isOptimallyConnected(vector<vector<int>>& country) {
     dfs(0, country, visited);
 
     int edgeCount = 0;
-    for (size_t i = 0; i < n; ++i) { // Change int to size_t
+    for (int i = 0; i < n; ++i) {
         if (!visited[i]) return false;  // Not fully connected
-        for (size_t j = i + 1; j < n; ++j) { // Change int to size_t
+        for (int j = i + 1; j < n; ++j) {
             if (country[i][j] == 1) edgeCount++;
         }
     }
@@ -118,11 +118,11 @@ int main() {
     
     for (int i = 0; i < n; ++i) {
         getline(buildStream, line, ',');
-        for (size_t j = 0; j < n; ++j) { // Change int to size_t
+        for (int j = 0; j < n; ++j) {
             buildCosts[i][j] = letterToCost(line[j]);
         }
         getline(destroyStream, line, ',');
-        for (size_t j = 0; j < n; ++j) { // Change int to size_t
+        for (int j = 0; j < n; ++j) {
             destroyCosts[i][j] = letterToCost(line[j]);
         }
     }
@@ -149,10 +149,15 @@ int main() {
 
     // Kruskal's algorithm with modification
     int totalCost = 0;
+
+    // Reinitialize Union-Find for processing all edges
+    UnionFind ufAll(n);
+
+    // Add edges to the total cost based on connection needs
     for (const Edge &edge : edges) {
-        if (uf.find(edge.u) != uf.find(edge.v)) {
-            uf.unite(edge.u, edge.v);
-            totalCost += edge.cost;  // Add cost of building a new edge or destroying an existing one
+        if (ufAll.find(edge.u) != ufAll.find(edge.v)) {
+            ufAll.unite(edge.u, edge.v);
+            totalCost += edge.cost;  // Add cost of either building or destroying edges
         }
     }
 
