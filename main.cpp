@@ -136,10 +136,11 @@ int main() {
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
             if (country[i][j] == 1) {
+                // Existing road, consider destruction cost
                 edges.push_back({i, j, destroyCosts[i][j], false});
-            } else {
-                edges.push_back({i, j, buildCosts[i][j], true});
-            }
+            } 
+            // Always consider building a new road if it's cheaper or non-existent
+            edges.push_back({i, j, buildCosts[i][j], true});
         }
     }
 
