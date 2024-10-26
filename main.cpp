@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <queue>
 
 using namespace std;
 
@@ -53,33 +54,31 @@ int letterToCost(char c) {
     return 0; // Should not happen
 }
 
-// DFS to check if the graph is already optimally connected
-void dfs(int node, vector<vector<int>>& country, vector<bool>& visited) {
+// DFS to find all nodes in a subgraph
+void dfs(int node, vector<vector<int>>& country, vector<bool>& visited, vector<int>& component) {
     visited[node] = true;
+    component.push_back(node);
     for (int i = 0; i < country.size(); ++i) {
         if (country[node][i] == 1 && !visited[i]) {
-            dfs(i, country, visited);
+            dfs(i, country, visited, component);
         }
     }
 }
 
-// Check if the initial graph is already a spanning tree
-bool isOptimallyConnected(vector<vector<int>>& country) {
+// Find all subgraphs in the country graph
+vector<vector<int>> findSubgraphs(vector<vector<int>>& country) {
     int n = country.size();
     vector<bool> visited(n, false);
-    dfs(0, country, visited);
+    vector<vector<int>> subgraphs;
 
-    // Check if all nodes are visited and count the number of edges
-    int edgeCount = 0;
     for (int i = 0; i < n; ++i) {
-        if (!visited[i]) return false;  // Not fully connected
-        for (int j = i + 1; j < n; ++j) {
-            if (country[i][j] == 1) edgeCount++;
+        if (!visited[i]) {
+            vector<int> component;
+            dfs(i, country, visited, component);
+            subgraphs.push_back(component);
         }
     }
-
-    // Check if the edge count equals n - 1 for a spanning tree
-    return edgeCount == n - 1;
+    return subgraphs;
 }
 
 int main() {
@@ -107,15 +106,6 @@ int main() {
 
     int n = country.size();
 
-    // Check if the country is already optimally connected
-    if (isOptimallyConnected(country)) {
-        cout << 0 << endl;
-        return 0;
-    }
-
-    UnionFind uf(n);
-    vector<Edge> edges;
-
     // Parse build and destroy costs into two 2D arrays
     vector<vector<int>> buildCosts(n, vector<int>(n));
     vector<vector<int>> destroyCosts(n, vector<int>(n));
@@ -132,33 +122,64 @@ int main() {
         }
     }
 
-    // Generate edges for build and destroy costs
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            if (country[i][j] == 1) {
-                // Existing road, consider destruction cost
-                edges.push_back({i, j, destroyCosts[i][j], false});
-            } 
-            // Always consider building a new road if it's cheaper or non-existent
-            edges.push_back({i, j, buildCosts[i][j], true});
+    // Find all subgraphs
+    vector<vector<int>> subgraphs = findSubgraphs(country);
+
+    int totalCost = 0;
+
+    for (const auto& component : subgraphs) {
+        UnionFind uf(n);
+        vector<Edge> edges;
+
+        // Gather edges for MST construction within each component
+        for (int i : component) {
+            for (int j : component) {
+                if (i != j) {
+                    if (country[i][j] == 1) {
+                        edges.push_back({i, j, destroyCosts[i][j], false});
+                    } else {
+                        edges.push_back({i, j, buildCosts[i][j], true});
+                    }
+                }
+            }
+        }
+
+        // Sort edges by cost
+        sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
+            return a.cost < b.cost;
+        });
+
+        // Apply Kruskal's algorithm for MST within the component
+        for (const Edge &edge : edges) {
+            if (uf.find(edge.u) != uf.find(edge.v)) {
+                uf.unite(edge.u, edge.v);
+                totalCost += edge.cost;
+            }
         }
     }
 
-    // Sort edges by cost
-    sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
+    // Gather edges between different subgraphs
+    vector<Edge> interSubgraphEdges;
+    for (int i = 0; i < subgraphs.size(); ++i) {
+        for (int j = i + 1; j < subgraphs.size(); ++j) {
+            for (int u : subgraphs[i]) {
+                for (int v : subgraphs[j]) {
+                    interSubgraphEdges.push_back({u, v, buildCosts[u][v], true});
+                }
+            }
+        }
+    }
+
+    // Sort inter-subgraph edges by cost and connect subgraphs
+    sort(interSubgraphEdges.begin(), interSubgraphEdges.end(), [](const Edge &a, const Edge &b) {
         return a.cost < b.cost;
     });
 
-    int totalCost = 0;
-    int edgeCount = 0;
-
-    // Kruskal's algorithm for MST construction
-    for (const Edge &edge : edges) {
-        if (uf.find(edge.u) != uf.find(edge.v)) {
-            uf.unite(edge.u, edge.v);
+    UnionFind ufTotal(n);
+    for (const Edge &edge : interSubgraphEdges) {
+        if (ufTotal.find(edge.u) != ufTotal.find(edge.v)) {
+            ufTotal.unite(edge.u, edge.v);
             totalCost += edge.cost;
-            edgeCount++;
-            if (edgeCount == n - 1) break;  // Minimum edges for full connection
         }
     }
 
