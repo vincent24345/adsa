@@ -53,6 +53,35 @@ int letterToCost(char c) {
     return 0; // Should not happen
 }
 
+// DFS to check if the graph is already optimally connected
+void dfs(int node, vector<vector<int>>& country, vector<bool>& visited) {
+    visited[node] = true;
+    for (int i = 0; i < country.size(); ++i) {
+        if (country[node][i] == 1 && !visited[i]) {
+            dfs(i, country, visited);
+        }
+    }
+}
+
+// Check if the initial graph is already a spanning tree
+bool isOptimallyConnected(vector<vector<int>>& country) {
+    int n = country.size();
+    vector<bool> visited(n, false);
+    dfs(0, country, visited);
+
+    // Check if all nodes are visited and count the number of edges
+    int edgeCount = 0;
+    for (int i = 0; i < n; ++i) {
+        if (!visited[i]) return false;  // Not fully connected
+        for (int j = i + 1; j < n; ++j) {
+            if (country[i][j] == 1) edgeCount++;
+        }
+    }
+
+    // Check if the edge count equals n - 1 for a spanning tree
+    return edgeCount == n - 1;
+}
+
 int main() {
     string input;
     getline(cin, input);
@@ -77,6 +106,13 @@ int main() {
     }
 
     int n = country.size();
+
+    // Check if the country is already optimally connected
+    if (isOptimallyConnected(country)) {
+        cout << 0 << endl;
+        return 0;
+    }
+
     UnionFind uf(n);
     vector<Edge> edges;
 
