@@ -8,18 +8,22 @@ using namespace std;
 
 struct Edge {
     int u, v, cost;
-    bool isBuild;  // true if it's a build edge, false if it's a destroy edge
+    bool isBuild;  // true for build, false for destroy
 };
 
 // Disjoint Set Union (Union-Find) for Kruskal's algorithm
 class UnionFind {
 public:
-    UnionFind(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; ++i) parent[i] = i;
+    UnionFind(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
     }
 
     int find(int u) {
-        if (parent[u] != u) parent[u] = find(parent[u]);
+        if (parent[u] != u)
+            parent[u] = find(parent[u]);
         return parent[u];
     }
 
@@ -27,9 +31,11 @@ public:
         int rootU = find(u);
         int rootV = find(v);
         if (rootU != rootV) {
-            if (rank[rootU] < rank[rootV]) parent[rootU] = rootV;
-            else if (rank[rootU] > rank[rootV]) parent[rootV] = rootU;
-            else {
+            if (rank[rootU] < rank[rootV]) {
+                parent[rootU] = rootV;
+            } else if (rank[rootU] > rank[rootV]) {
+                parent[rootV] = rootU;
+            } else {
                 parent[rootV] = rootU;
                 rank[rootU]++;
             }
@@ -40,125 +46,119 @@ private:
     vector<int> parent, rank;
 };
 
-// Convert letter to cost value
+// Function to convert letter costs to numerical values
 int letterToCost(char c) {
-    return isupper(c) ? c - 'A' : c - 'a' + 26;
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    return 0; // Should not happen
 }
 
-// Depth-First Search (DFS) to find connected components
-void dfs(int node, const vector<vector<int>>& country, vector<bool>& visited, vector<int>& component) {
+// DFS to check if the graph is already optimally connected
+void dfs(int node, vector<vector<int>>& country, vector<bool>& visited) {
     visited[node] = true;
-    component.push_back(node);
     for (int i = 0; i < country.size(); ++i) {
-        if (country[node][i] == 1 && !visited[i]) dfs(i, country, visited, component);
-    }
-}
-
-// Find all subgraphs (connected components) in the initial country matrix
-vector<vector<int>> findSubgraphs(const vector<vector<int>>& country) {
-    int n = country.size();
-    vector<bool> visited(n, false);
-    vector<vector<int>> subgraphs;
-    for (int i = 0; i < n; ++i) {
-        if (!visited[i]) {
-            vector<int> component;
-            dfs(i, country, visited, component);
-            subgraphs.push_back(component);
+        if (country[node][i] == 1 && !visited[i]) {
+            dfs(i, country, visited);
         }
     }
-    return subgraphs;
+}
+
+// Check if the initial graph is already a spanning tree
+bool isOptimallyConnected(vector<vector<int>>& country) {
+    int n = country.size();
+    vector<bool> visited(n, false);
+    dfs(0, country, visited);
+
+    // Check if all nodes are visited and count the number of edges
+    int edgeCount = 0;
+    for (int i = 0; i < n; ++i) {
+        if (!visited[i]) return false;  // Not fully connected
+        for (int j = i + 1; j < n; ++j) {
+            if (country[i][j] == 1) edgeCount++;
+        }
+    }
+
+    // Check if the edge count equals n - 1 for a spanning tree
+    return edgeCount == n - 1;
 }
 
 int main() {
     string input;
     getline(cin, input);
 
-    // Split input into three parts
+    // Split the input into three parts
     stringstream ss(input);
     string countryStr, buildStr, destroyStr;
     getline(ss, countryStr, ' ');
     getline(ss, buildStr, ' ');
     getline(ss, destroyStr, ' ');
 
-    // Parse country matrix
+    // Parse the country matrix
     vector<vector<int>> country;
     stringstream countryStream(countryStr);
     string line;
     while (getline(countryStream, line, ',')) {
         vector<int> row;
-        for (char c : line) row.push_back(c - '0');
+        for (char c : line) {
+            row.push_back(c - '0');
+        }
         country.push_back(row);
     }
+
     int n = country.size();
 
-    // Parse build and destroy cost matrices
-    vector<vector<int>> buildCosts(n, vector<int>(n)), destroyCosts(n, vector<int>(n));
-    stringstream buildStream(buildStr), destroyStream(destroyStr);
+    // Check if the country is already optimally connected
+    if (isOptimallyConnected(country)) {
+        cout << 0 << endl;
+        return 0;
+    }
 
+    UnionFind uf(n);
+    vector<Edge> edges;
+
+    // Parse build and destroy costs into two 2D arrays
+    vector<vector<int>> buildCosts(n, vector<int>(n));
+    vector<vector<int>> destroyCosts(n, vector<int>(n));
+    stringstream buildStream(buildStr), destroyStream(destroyStr);
+    
     for (int i = 0; i < n; ++i) {
         getline(buildStream, line, ',');
-        for (int j = 0; j < n; ++j) buildCosts[i][j] = letterToCost(line[j]);
-
+        for (int j = 0; j < n; ++j) {
+            buildCosts[i][j] = letterToCost(line[j]);
+        }
         getline(destroyStream, line, ',');
-        for (int j = 0; j < n; ++j) destroyCosts[i][j] = letterToCost(line[j]);
-    }
-
-    // Identify connected components (subgraphs)
-    vector<vector<int>> subgraphs = findSubgraphs(country);
-    int totalCost = 0;
-
-    // Process each subgraph to create MST with minimum cost
-    for (const auto& component : subgraphs) {
-        UnionFind uf(n);
-        vector<Edge> edges;
-
-        // Collect edges within each component
-        for (int i : component) {
-            for (int j : component) {
-                if (i != j) {
-                    if (country[i][j] == 1) edges.push_back({i, j, destroyCosts[i][j], false});
-                    else edges.push_back({i, j, buildCosts[i][j], true});
-                }
-            }
-        }
-
-        // Sort edges by cost for MST construction
-        sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
-            return a.cost < b.cost;
-        });
-
-        // Apply Kruskal’s algorithm to connect component nodes with minimal cost
-        for (const Edge &edge : edges) {
-            if (uf.find(edge.u) != uf.find(edge.v)) {
-                uf.unite(edge.u, edge.v);
-                totalCost += edge.cost;
-            }
+        for (int j = 0; j < n; ++j) {
+            destroyCosts[i][j] = letterToCost(line[j]);
         }
     }
 
-    // Collect all edges between components for minimum inter-connection
-    vector<Edge> interComponentEdges;
-    for (int i = 0; i < subgraphs.size(); ++i) {
-        for (int j = i + 1; j < subgraphs.size(); ++j) {
-            for (int u : subgraphs[i]) {
-                for (int v : subgraphs[j]) {
-                    interComponentEdges.push_back({u, v, buildCosts[u][v], true});
-                }
-            }
+    // Generate edges for build and destroy costs
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n; ++j) {
+            if (country[i][j] == 1) {
+                // Existing road, consider destruction cost
+                edges.push_back({i, j, destroyCosts[i][j], false});
+            } 
+            // Always consider building a new road if it's cheaper or non-existent
+            edges.push_back({i, j, buildCosts[i][j], true});
         }
     }
 
-    // Sort inter-component edges by cost for minimal connection
-    sort(interComponentEdges.begin(), interComponentEdges.end(), [](const Edge &a, const Edge &b) {
+    // Sort edges by cost
+    sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
         return a.cost < b.cost;
     });
 
-    // Connect all subgraphs with minimum possible cost
-    UnionFind ufTotal(n);
-    for (const Edge &edge : interComponentEdges) {
-        if (ufTotal.find(edge.u) != ufTotal.find(edge.v)) {
-            ufTotal.unite(edge.u, edge.v);
+    int totalCost = 0;
+    int edgeCount = 0;
+
+    // Kruskal's algorithm for MST construction
+    for (const Edge &edge : edges) {
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            uf.unite(edge.u, edge.v);
             totalCost += edge.cost;
+            edgeCount++;
+            if (edgeCount == n - 1) break;  // Minimum edges for full connection
         }
     }
 
