@@ -48,9 +48,7 @@ private:
 
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A';
-    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-    return 0; // Should not happen
+    return isupper(c) ? c - 'A' : c - 'a' + 26;
 }
 
 // DFS to check if the graph is already optimally connected
@@ -69,16 +67,13 @@ bool isOptimallyConnected(vector<vector<int>>& country) {
     vector<bool> visited(n, false);
     dfs(0, country, visited);
 
-    // Check if all nodes are visited and count the number of edges
     int edgeCount = 0;
     for (int i = 0; i < n; ++i) {
-        if (!visited[i]) return false;  // Not fully connected
+        if (!visited[i]) return false;
         for (int j = i + 1; j < n; ++j) {
             if (country[i][j] == 1) edgeCount++;
         }
     }
-
-    // Check if the edge count equals n - 1 for a spanning tree
     return edgeCount == n - 1;
 }
 
@@ -93,7 +88,6 @@ int main() {
     getline(ss, buildStr, ' ');
     getline(ss, destroyStr, ' ');
 
-    // Parse the country matrix
     vector<vector<int>> country;
     stringstream countryStream(countryStr);
     string line;
@@ -138,9 +132,10 @@ int main() {
             if (country[i][j] == 1) {
                 // Existing road, consider destruction cost
                 edges.push_back({i, j, destroyCosts[i][j], false});
-            } 
-            // Always consider building a new road if it's cheaper or non-existent
-            edges.push_back({i, j, buildCosts[i][j], true});
+            } else {
+                // Non-existent road, consider build cost
+                edges.push_back({i, j, buildCosts[i][j], true});
+            }
         }
     }
 
@@ -152,13 +147,14 @@ int main() {
     int totalCost = 0;
     int edgeCount = 0;
 
-    // Kruskal's algorithm for MST construction
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
             uf.unite(edge.u, edge.v);
-            totalCost += edge.cost;
+            if (edge.isBuild || country[edge.u][edge.v] == 1) {
+                totalCost += edge.cost;
+            }
             edgeCount++;
-            if (edgeCount == n - 1) break;  // Minimum edges for full connection
+            if (edgeCount == n - 1) break;
         }
     }
 
