@@ -140,6 +140,7 @@ int main() {
 
     // Kruskal's algorithm with modification
     int totalCost = 0;
+    int edgesUsed = 0;  // Track how many edges are used for connecting components
 
     // Add edges to the total cost based on connection needs
     for (const Edge &edge : edges) {
@@ -147,10 +148,13 @@ int main() {
         if (uf.find(edge.u) != uf.find(edge.v)) {
             uf.unite(edge.u, edge.v);
             totalCost += edge.cost;  // Add cost of either building or destroying edges
+            edgesUsed++;
+
+            // Stop if we've connected all components
+            if (edgesUsed == n - 1) break;
         }
     }
 
-    // Check if the total cost equals the expected output
-    cout << (totalCost == 1 ? 1 : 0) << endl;  // Adjusted to output 1 for the specific test case.
+    cout << totalCost << endl;
     return 0;
 }
