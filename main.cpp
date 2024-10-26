@@ -147,20 +147,24 @@ int main() {
         return a.cost < b.cost;
     });
 
-    // Initialize the MST cost with the cost of destroying existing edges
+    // Kruskal's algorithm with modification
     int totalCost = 0;
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            if (country[i][j] == 1) {
-                totalCost += destroyCosts[i][j];
-            }
+
+    // Calculate the total destruction cost first
+    for (const Edge &edge : edges) {
+        if (edge.isBuild) continue; // Skip build edges for initial cost
+        if (uf.find(edge.u) != uf.find(edge.v)) {
+            uf.unite(edge.u, edge.v);
+            totalCost += edge.cost;  // Add cost of destroying existing edges
         }
     }
 
-    // Kruskal's algorithm with modification
+    // Reinitialize Union-Find for building roads
+    UnionFind ufBuild(n);
+    
     for (const Edge &edge : edges) {
-        if (uf.find(edge.u) != uf.find(edge.v)) {
-            uf.unite(edge.u, edge.v);
+        if (ufBuild.find(edge.u) != ufBuild.find(edge.v)) {
+            ufBuild.unite(edge.u, edge.v);
             if (edge.isBuild) {
                 totalCost += edge.cost;  // Add cost of building a new edge
             }
