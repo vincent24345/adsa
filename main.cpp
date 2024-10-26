@@ -80,16 +80,26 @@ int main() {
     UnionFind uf(n);
     vector<Edge> edges;
 
-    // Parse build costs and destroy costs and create edges
+    // Parse build and destroy matrices
+    vector<string> buildMatrix, destroyMatrix;
+    stringstream buildStream(buildStr), destroyStream(destroyStr);
+    while (getline(buildStream, line, ',')) {
+        buildMatrix.push_back(line);
+    }
+    while (getline(destroyStream, line, ',')) {
+        destroyMatrix.push_back(line);
+    }
+
+    // Create edges with correct costs
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
             if (country[i][j] == 1) {
                 // Existing road, consider both destruction and build costs
-                edges.push_back({i, j, letterToCost(destroyStr[i * (n + 1) + j]), false});
-                edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
+                edges.push_back({i, j, letterToCost(destroyMatrix[i][j]), false});
+                edges.push_back({i, j, letterToCost(buildMatrix[i][j]), true});
             } else {
                 // No road, only consider build cost
-                edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
+                edges.push_back({i, j, letterToCost(buildMatrix[i][j]), true});
             }
         }
     }
