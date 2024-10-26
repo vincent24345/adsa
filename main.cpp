@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <functional>
 
 using namespace std;
 
@@ -52,30 +53,21 @@ int letterToCost(char c) {
 }
 
 // Check if the initial graph is already optimally connected
-bool isOptimallyConnected(const vector<vector<int>>& country, int& edgeCount) {
+bool isConnectedComponent(const vector<vector<int>>& country) {
     int n = country.size();
     vector<bool> visited(n, false);
-    edgeCount = 0;
 
-    // Count the edges and check connectivity using DFS
     function<void(int)> dfs = [&](int node) {
         visited[node] = true;
         for (int i = 0; i < n; ++i) {
-            if (country[node][i] == 1) {
-                edgeCount++;
-                if (!visited[i]) {
-                    dfs(i);
-                }
+            if (country[node][i] == 1 && !visited[i]) {
+                dfs(i);
             }
         }
     };
 
     dfs(0);
-    // Each edge is counted twice in the DFS, so divide by 2
-    edgeCount /= 2;
-
-    // Check if all nodes are visited and the edge count matches n - 1
-    return all_of(visited.begin(), visited.end(), [](bool v) { return v; }) && edgeCount == n - 1;
+    return all_of(visited.begin(), visited.end(), [](bool v) { return v; });
 }
 
 int main() {
@@ -102,10 +94,9 @@ int main() {
     }
 
     int n = country.size();
-    int edgeCount = 0;
 
     // Check if the country is already optimally connected
-    if (isOptimallyConnected(country, edgeCount)) {
+    if (isConnectedComponent(country)) {
         cout << 0 << endl;
         return 0;
     }
@@ -131,15 +122,13 @@ int main() {
 
     // Generate edges for build and destroy costs
     for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            if (i != j) { // Avoid self-loops
-                if (country[i][j] == 1) {
-                    // Existing road, consider destruction cost
-                    edges.push_back({i, j, destroyCosts[i][j], false});
-                } else {
-                    // Non-existent road, consider build cost
-                    edges.push_back({i, j, buildCosts[i][j], true});
-                }
+        for (int j = i + 1; j < n; ++j) { // Only add each edge once (undirected)
+            if (country[i][j] == 1) {
+                // Existing road, consider destruction cost
+                edges.push_back({i, j, destroyCosts[i][j], false});
+            } else {
+                // Non-existent road, consider build cost
+                edges.push_back({i, j, buildCosts[i][j], true});
             }
         }
     }
