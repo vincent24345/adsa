@@ -14,12 +14,16 @@ struct Edge {
 // Disjoint Set Union (Union-Find) for Kruskal's algorithm
 class UnionFind {
 public:
-    UnionFind(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; ++i) parent[i] = i;
+    UnionFind(int n) {
+        parent.resize(n);
+        rank.resize(n, 0);
+        for (int i = 0; i < n; ++i)
+            parent[i] = i;
     }
 
     int find(int u) {
-        if (parent[u] != u) parent[u] = find(parent[u]);
+        if (parent[u] != u)
+            parent[u] = find(parent[u]);
         return parent[u];
     }
 
@@ -46,7 +50,7 @@ private:
 int letterToCost(char c) {
     if (c >= 'A' && c <= 'Z') return c - 'A';
     if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-    return -1; // Invalid character case
+    return 0; // Should not happen
 }
 
 int main() {
@@ -76,37 +80,17 @@ int main() {
     UnionFind uf(n);
     vector<Edge> edges;
 
-    // Parse build and destroy costs into matrices for easy access
-    vector<vector<int>> buildCosts(n, vector<int>(n));
-    vector<vector<int>> destroyCosts(n, vector<int>(n));
-
-    // Parse build costs
-    stringstream buildStream(buildStr);
+    // Parse build costs and destroy costs and create edges
     for (int i = 0; i < n; ++i) {
-        getline(buildStream, line, ',');
         for (int j = 0; j < n; ++j) {
-            buildCosts[i][j] = letterToCost(line[j]);
-        }
-    }
-
-    // Parse destroy costs
-    stringstream destroyStream(destroyStr);
-    for (int i = 0; i < n; ++i) {
-        getline(destroyStream, line, ',');
-        for (int j = 0; j < n; ++j) {
-            destroyCosts[i][j] = letterToCost(line[j]);
-        }
-    }
-
-    // Create edges for the graph
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {  // Only consider each pair once
-            if (country[i][j] == 1) {
-                // Existing road, consider destruction cost
-                edges.push_back({i, j, destroyCosts[i][j], false});
-            } else {
-                // No road, consider build cost
-                edges.push_back({i, j, buildCosts[i][j], true});
+            if (i != j) {
+                if (country[i][j] == 1) {
+                    // Existing road, consider destruction cost
+                    edges.push_back({i, j, letterToCost(destroyStr[i * (n + 1) + j]), false});
+                } else {
+                    // No road, consider build cost
+                    edges.push_back({i, j, letterToCost(buildStr[i * (n + 1) + j]), true});
+                }
             }
         }
     }
@@ -116,23 +100,17 @@ int main() {
         return a.cost < b.cost;
     });
 
-    int totalCost = 0, edgesUsed = 0;
+    int totalCost = 0;
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            totalCost += edge.cost;
-            uf.unite(edge.u, edge.v);
-            edgesUsed++;
-            if (edgesUsed == n - 1) break;  // Stop when we have n-1 edges
+            if (edge.isBuild || uf.find(edge.u) == uf.find(edge.v)) {
+                totalCost += edge.cost;
+                uf.unite(edge.u, edge.v);
+            }
         }
     }
 
-    // Check if all nodes are connected by verifying that we used exactly n-1 edges
-    if (edgesUsed != n - 1) {
-        cout << "Cannot connect all cities with the given road system." << endl;
-        return 1;
-    }
-
-    cout << "Minimum Cost to Connect All Cities: " << totalCost << endl;
+    cout << totalCost << endl;
     return 0;
 }
