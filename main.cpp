@@ -14,16 +14,12 @@ struct Edge {
 // Disjoint Set Union (Union-Find) for Kruskal's algorithm
 class UnionFind {
 public:
-    UnionFind(int n) {
-        parent.resize(n);
-        rank.resize(n, 0);
-        for (int i = 0; i < n; ++i)
-            parent[i] = i;
+    UnionFind(int n) : parent(n), rank(n, 0) {
+        for (int i = 0; i < n; ++i) parent[i] = i;
     }
 
     int find(int u) {
-        if (parent[u] != u)
-            parent[u] = find(parent[u]);
+        if (parent[u] != u) parent[u] = find(parent[u]);
         return parent[u];
     }
 
@@ -50,7 +46,7 @@ private:
 int letterToCost(char c) {
     if (c >= 'A' && c <= 'Z') return c - 'A';
     if (c >= 'a' && c <= 'z') return c - 'a' + 26;
-    return 0; // Should not happen
+    return -1; // Invalid character case
 }
 
 int main() {
@@ -120,15 +116,23 @@ int main() {
         return a.cost < b.cost;
     });
 
-    int totalCost = 0;
+    int totalCost = 0, edgesUsed = 0;
     // Kruskal's algorithm to construct the MST
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
             totalCost += edge.cost;
             uf.unite(edge.u, edge.v);
+            edgesUsed++;
+            if (edgesUsed == n - 1) break;  // Stop when we have n-1 edges
         }
     }
 
-    cout << totalCost << endl;
+    // Check if all nodes are connected by verifying that we used exactly n-1 edges
+    if (edgesUsed != n - 1) {
+        cout << "Cannot connect all cities with the given road system." << endl;
+        return 1;
+    }
+
+    cout << "Minimum Cost to Connect All Cities: " << totalCost << endl;
     return 0;
 }
