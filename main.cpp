@@ -150,12 +150,11 @@ int main() {
     // Kruskal's algorithm with modification
     int totalCost = 0;
 
-    // Reinitialize Union-Find for building roads
     UnionFind ufAll(n);
-
+    
     // Add edges to the total cost based on connection needs
     for (const Edge &edge : edges) {
-        // Only add edges if they connect two different components
+        // Check if edge connects different components
         if (ufAll.find(edge.u) != ufAll.find(edge.v)) {
             ufAll.unite(edge.u, edge.v);
             totalCost += edge.cost;  // Add cost of either building or destroying edges
