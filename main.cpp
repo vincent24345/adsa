@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <unordered_set>
 
 using namespace std;
 
@@ -42,6 +43,10 @@ public:
         }
     }
 
+    bool connected(int u, int v) {
+        return find(u) == find(v);
+    }
+
 private:
     vector<int> parent, rank;
 };
@@ -49,32 +54,6 @@ private:
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
     return isupper(c) ? c - 'A' : c - 'a' + 26; // Treat uppercase and lowercase letters
-}
-
-// DFS to check if the graph is already optimally connected
-void dfs(int node, vector<vector<int>>& country, vector<bool>& visited) {
-    visited[node] = true;
-    for (size_t i = 0; i < country.size(); ++i) { // Change int to size_t
-        if (country[node][i] == 1 && !visited[i]) {
-            dfs(i, country, visited);
-        }
-    }
-}
-
-// Check if the initial graph is already a spanning tree
-bool isOptimallyConnected(vector<vector<int>>& country) {
-    int n = country.size();
-    vector<bool> visited(n, false);
-    dfs(0, country, visited);
-
-    int edgeCount = 0;
-    for (int i = 0; i < n; ++i) {
-        if (!visited[i]) return false;  // Not fully connected
-        for (int j = i + 1; j < n; ++j) {
-            if (country[i][j] == 1) edgeCount++;
-        }
-    }
-    return edgeCount == n - 1; // Check if the edge count equals n - 1 for a spanning tree
 }
 
 int main() {
@@ -102,12 +81,7 @@ int main() {
 
     int n = country.size();
 
-    // Check if the country is already optimally connected
-    if (isOptimallyConnected(country)) {
-        cout << 0 << endl;
-        return 0;
-    }
-
+    // Union-Find initialization for the existing roads
     UnionFind uf(n);
     vector<Edge> edges;
 
@@ -115,7 +89,7 @@ int main() {
     vector<vector<int>> buildCosts(n, vector<int>(n));
     vector<vector<int>> destroyCosts(n, vector<int>(n));
     stringstream buildStream(buildStr), destroyStream(destroyStr);
-    
+
     for (int i = 0; i < n; ++i) {
         getline(buildStream, line, ',');
         for (int j = 0; j < n; ++j) {
@@ -127,17 +101,14 @@ int main() {
         }
     }
 
-    // Generate edges for build and destroy costs
+    // Build edges considering existing roads for destruction
     for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            if (i != j) { // Avoid self-loops
-                if (country[i][j] == 1) {
-                    // Existing road, consider destruction cost
-                    edges.push_back({i, j, destroyCosts[i][j], false});
-                } else {
-                    // Non-existent road, consider build cost
-                    edges.push_back({i, j, buildCosts[i][j], true});
-                }
+        for (int j = i + 1; j < n; ++j) { // Avoid self-loops and duplicate edges
+            if (country[i][j] == 1) {
+                edges.push_back({i, j, destroyCosts[i][j], false}); // Existing road (destroy)
+                uf.unite(i, j); // Union existing roads
+            } else {
+                edges.push_back({i, j, buildCosts[i][j], true}); // Non-existing road (build)
             }
         }
     }
@@ -147,16 +118,12 @@ int main() {
         return a.cost < b.cost;
     });
 
-    // Kruskal's algorithm with modification
     int totalCost = 0;
 
-    UnionFind ufAll(n);
-    
-    // Add edges to the total cost based on connection needs
+    // Kruskal's algorithm with modification to connect all cities
     for (const Edge &edge : edges) {
-        // Check if edge connects different components
-        if (ufAll.find(edge.u) != ufAll.find(edge.v)) {
-            ufAll.unite(edge.u, edge.v);
+        if (!uf.connected(edge.u, edge.v)) {
+            uf.unite(edge.u, edge.v);
             totalCost += edge.cost;  // Add cost of either building or destroying edges
         }
     }
