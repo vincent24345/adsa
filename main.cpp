@@ -48,7 +48,7 @@ private:
 
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
-    return isupper(c) ? c - 'A' : c - 'a' + 26;
+    return isupper(c) ? c - 'A' : c - 'a' + 26; // Treat uppercase and lowercase letters
 }
 
 // DFS to check if the graph is already optimally connected
@@ -69,12 +69,12 @@ bool isOptimallyConnected(vector<vector<int>>& country) {
 
     int edgeCount = 0;
     for (int i = 0; i < n; ++i) {
-        if (!visited[i]) return false;
+        if (!visited[i]) return false;  // Not fully connected
         for (int j = i + 1; j < n; ++j) {
             if (country[i][j] == 1) edgeCount++;
         }
     }
-    return edgeCount == n - 1;
+    return edgeCount == n - 1; // Check if the edge count equals n - 1 for a spanning tree
 }
 
 int main() {
@@ -88,6 +88,7 @@ int main() {
     getline(ss, buildStr, ' ');
     getline(ss, destroyStr, ' ');
 
+    // Parse the country matrix
     vector<vector<int>> country;
     stringstream countryStream(countryStr);
     string line;
@@ -128,13 +129,15 @@ int main() {
 
     // Generate edges for build and destroy costs
     for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            if (country[i][j] == 1) {
-                // Existing road, consider destruction cost
-                edges.push_back({i, j, destroyCosts[i][j], false});
-            } else {
-                // Non-existent road, consider build cost
-                edges.push_back({i, j, buildCosts[i][j], true});
+        for (int j = 0; j < n; ++j) {
+            if (i != j) { // Avoid self-loops
+                if (country[i][j] == 1) {
+                    // Existing road, consider destruction cost
+                    edges.push_back({i, j, destroyCosts[i][j], false});
+                } else {
+                    // Non-existent road, consider build cost
+                    edges.push_back({i, j, buildCosts[i][j], true});
+                }
             }
         }
     }
