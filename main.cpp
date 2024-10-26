@@ -61,7 +61,6 @@ void dfs(int node, vector<vector<int>>& country, vector<bool>& visited) {
     }
 }
 
-
 // Check if the initial graph is already a spanning tree
 bool isOptimallyConnected(vector<vector<int>>& country) {
     int n = country.size();
@@ -69,9 +68,9 @@ bool isOptimallyConnected(vector<vector<int>>& country) {
     dfs(0, country, visited);
 
     int edgeCount = 0;
-    for (int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) { // Change int to size_t
         if (!visited[i]) return false;  // Not fully connected
-        for (int j = i + 1; j < n; ++j) {
+        for (size_t j = i + 1; j < n; ++j) { // Change int to size_t
             if (country[i][j] == 1) edgeCount++;
         }
     }
@@ -119,11 +118,11 @@ int main() {
     
     for (int i = 0; i < n; ++i) {
         getline(buildStream, line, ',');
-        for (int j = 0; j < n; ++j) {
+        for (size_t j = 0; j < n; ++j) { // Change int to size_t
             buildCosts[i][j] = letterToCost(line[j]);
         }
         getline(destroyStream, line, ',');
-        for (int j = 0; j < n; ++j) {
+        for (size_t j = 0; j < n; ++j) { // Change int to size_t
             destroyCosts[i][j] = letterToCost(line[j]);
         }
     }
@@ -150,25 +149,10 @@ int main() {
 
     // Kruskal's algorithm with modification
     int totalCost = 0;
-
-    // Calculate the total destruction cost first
     for (const Edge &edge : edges) {
-        if (edge.isBuild) continue; // Skip build edges for initial cost
         if (uf.find(edge.u) != uf.find(edge.v)) {
             uf.unite(edge.u, edge.v);
-            totalCost += edge.cost;  // Add cost of destroying existing edges
-        }
-    }
-
-    // Reinitialize Union-Find for building roads
-    UnionFind ufBuild(n);
-    
-    for (const Edge &edge : edges) {
-        if (ufBuild.find(edge.u) != ufBuild.find(edge.v)) {
-            ufBuild.unite(edge.u, edge.v);
-            if (edge.isBuild) {
-                totalCost += edge.cost;  // Add cost of building a new edge
-            }
+            totalCost += edge.cost;  // Add cost of building a new edge or destroying an existing one
         }
     }
 
