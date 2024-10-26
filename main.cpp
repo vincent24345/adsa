@@ -3,7 +3,6 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
-#include <unordered_set>
 
 using namespace std;
 
@@ -43,10 +42,6 @@ public:
         }
     }
 
-    bool connected(int u, int v) {
-        return find(u) == find(v);
-    }
-
 private:
     vector<int> parent, rank;
 };
@@ -54,6 +49,33 @@ private:
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
     return isupper(c) ? c - 'A' : c - 'a' + 26; // Treat uppercase and lowercase letters
+}
+
+// Check if the initial graph is already optimally connected
+bool isOptimallyConnected(const vector<vector<int>>& country, int& edgeCount) {
+    int n = country.size();
+    vector<bool> visited(n, false);
+    edgeCount = 0;
+
+    // Count the edges and check connectivity using DFS
+    function<void(int)> dfs = [&](int node) {
+        visited[node] = true;
+        for (int i = 0; i < n; ++i) {
+            if (country[node][i] == 1) {
+                edgeCount++;
+                if (!visited[i]) {
+                    dfs(i);
+                }
+            }
+        }
+    };
+
+    dfs(0);
+    // Each edge is counted twice in the DFS, so divide by 2
+    edgeCount /= 2;
+
+    // Check if all nodes are visited and the edge count matches n - 1
+    return all_of(visited.begin(), visited.end(), [](bool v) { return v; }) && edgeCount == n - 1;
 }
 
 int main() {
@@ -72,16 +94,22 @@ int main() {
     stringstream countryStream(countryStr);
     string line;
     while (getline(countryStream, line, ',')) {
-        vector<int> row;
-        for (char c : line) {
-            row.push_back(c - '0');
+        vector<int> row(line.size());
+        for (size_t i = 0; i < line.size(); ++i) {
+            row[i] = line[i] - '0';
         }
         country.push_back(row);
     }
 
     int n = country.size();
+    int edgeCount = 0;
 
-    // Union-Find initialization for the existing roads
+    // Check if the country is already optimally connected
+    if (isOptimallyConnected(country, edgeCount)) {
+        cout << 0 << endl;
+        return 0;
+    }
+
     UnionFind uf(n);
     vector<Edge> edges;
 
@@ -89,7 +117,7 @@ int main() {
     vector<vector<int>> buildCosts(n, vector<int>(n));
     vector<vector<int>> destroyCosts(n, vector<int>(n));
     stringstream buildStream(buildStr), destroyStream(destroyStr);
-
+    
     for (int i = 0; i < n; ++i) {
         getline(buildStream, line, ',');
         for (int j = 0; j < n; ++j) {
@@ -101,14 +129,17 @@ int main() {
         }
     }
 
-    // Build edges considering existing roads for destruction
+    // Generate edges for build and destroy costs
     for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) { // Avoid self-loops and duplicate edges
-            if (country[i][j] == 1) {
-                edges.push_back({i, j, destroyCosts[i][j], false}); // Existing road (destroy)
-                uf.unite(i, j); // Union existing roads
-            } else {
-                edges.push_back({i, j, buildCosts[i][j], true}); // Non-existing road (build)
+        for (int j = 0; j < n; ++j) {
+            if (i != j) { // Avoid self-loops
+                if (country[i][j] == 1) {
+                    // Existing road, consider destruction cost
+                    edges.push_back({i, j, destroyCosts[i][j], false});
+                } else {
+                    // Non-existent road, consider build cost
+                    edges.push_back({i, j, buildCosts[i][j], true});
+                }
             }
         }
     }
@@ -118,11 +149,13 @@ int main() {
         return a.cost < b.cost;
     });
 
+    // Kruskal's algorithm with modification
     int totalCost = 0;
 
-    // Kruskal's algorithm with modification to connect all cities
+    // Add edges to the total cost based on connection needs
     for (const Edge &edge : edges) {
-        if (!uf.connected(edge.u, edge.v)) {
+        // Check if edge connects different components
+        if (uf.find(edge.u) != uf.find(edge.v)) {
             uf.unite(edge.u, edge.v);
             totalCost += edge.cost;  // Add cost of either building or destroying edges
         }
