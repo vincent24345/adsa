@@ -80,26 +80,29 @@ int main() {
     UnionFind uf(n);
     vector<Edge> edges;
 
-    // Parse build and destroy matrices
-    vector<string> buildMatrix, destroyMatrix;
+    // Parse build and destroy costs into two 2D arrays
+    vector<vector<int>> buildCosts(n, vector<int>(n));
+    vector<vector<int>> destroyCosts(n, vector<int>(n));
     stringstream buildStream(buildStr), destroyStream(destroyStr);
-    while (getline(buildStream, line, ',')) {
-        buildMatrix.push_back(line);
-    }
-    while (getline(destroyStream, line, ',')) {
-        destroyMatrix.push_back(line);
+    
+    for (int i = 0; i < n; ++i) {
+        getline(buildStream, line, ',');
+        for (int j = 0; j < n; ++j) {
+            buildCosts[i][j] = letterToCost(line[j]);
+        }
+        getline(destroyStream, line, ',');
+        for (int j = 0; j < n; ++j) {
+            destroyCosts[i][j] = letterToCost(line[j]);
+        }
     }
 
-    // Create edges with correct costs
+    // Generate edges for build and destroy costs
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
             if (country[i][j] == 1) {
-                // Existing road, consider both destruction and build costs
-                edges.push_back({i, j, letterToCost(destroyMatrix[i][j]), false});
-                edges.push_back({i, j, letterToCost(buildMatrix[i][j]), true});
+                edges.push_back({i, j, destroyCosts[i][j], false});
             } else {
-                // No road, only consider build cost
-                edges.push_back({i, j, letterToCost(buildMatrix[i][j]), true});
+                edges.push_back({i, j, buildCosts[i][j], true});
             }
         }
     }
@@ -110,11 +113,15 @@ int main() {
     });
 
     int totalCost = 0;
-    // Kruskal's algorithm to construct the MST
+    int edgeCount = 0;
+
+    // Kruskal's algorithm for MST construction
     for (const Edge &edge : edges) {
         if (uf.find(edge.u) != uf.find(edge.v)) {
-            totalCost += edge.cost;
             uf.unite(edge.u, edge.v);
+            totalCost += edge.cost;
+            edgeCount++;
+            if (edgeCount == n - 1) break;  // Minimum edges for full connection
         }
     }
 
