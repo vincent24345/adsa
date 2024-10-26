@@ -54,12 +54,13 @@ int letterToCost(char c) {
 // DFS to check if the graph is already optimally connected
 void dfs(int node, vector<vector<int>>& country, vector<bool>& visited) {
     visited[node] = true;
-    for (int i = 0; i < country.size(); ++i) {
+    for (size_t i = 0; i < country.size(); ++i) { // Change int to size_t
         if (country[node][i] == 1 && !visited[i]) {
             dfs(i, country, visited);
         }
     }
 }
+
 
 // Check if the initial graph is already a spanning tree
 bool isOptimallyConnected(vector<vector<int>>& country) {
