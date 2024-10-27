@@ -6,17 +6,17 @@
 
 using namespace std;
 
-// Represent roads between cities with their build/destroy cost and status
+// Structure representing each road with cost details and status
 struct Road {
-    int cityA, cityB;
+    int from, to;
     int cost;
-    bool isNew; // true if road needs to be built
+    bool isPlanned; // true if road needs to be built
 };
 
-// Disjoint Set Union-Find class to manage connected cities
-class DisjointSet {
+// Union-Find structure to handle city connectivity for MST construction
+class UnionFind {
 public:
-    DisjointSet(int n) {
+    UnionFind(int n) {
         parent.resize(n);
         rank.resize(n, 0);
         for (int i = 0; i < n; ++i) parent[i] = i;
@@ -46,13 +46,13 @@ private:
     vector<int> parent, rank;
 };
 
-// Convert letter to cost using ASCII difference
-int getCost(char c) {
-    return isupper(c) ? c - 'A' : c - 'a' + 26;
+// Calculate road cost using ASCII difference for simplicity
+int computeCost(char ch) {
+    return isupper(ch) ? ch - 'A' : ch - 'a' + 26;
 }
 
-// Parse a string with comma-separated values to an integer matrix
-vector<vector<int>> parseIntegerMatrix(const string& data) {
+// Function to parse a comma-separated string into an integer matrix
+vector<vector<int>> parseIntMatrix(const string& data) {
     vector<vector<int>> matrix;
     stringstream ss(data);
     string row;
@@ -64,7 +64,7 @@ vector<vector<int>> parseIntegerMatrix(const string& data) {
     return matrix;
 }
 
-// Parse a string with comma-separated values to a character matrix
+// Function to parse a comma-separated string into a character matrix
 vector<vector<char>> parseCharMatrix(const string& data) {
     vector<vector<char>> matrix;
     stringstream ss(data);
@@ -76,76 +76,77 @@ vector<vector<char>> parseCharMatrix(const string& data) {
     return matrix;
 }
 
-// Check if all cities are connected in the existing setup
-bool isAlreadyConnected(const vector<vector<int>>& map) {
-    int n = map.size();
+// Check if all cities are already connected using DFS traversal
+bool citiesConnected(const vector<vector<int>>& adjacencyMatrix) {
+    int n = adjacencyMatrix.size();
     vector<bool> visited(n, false);
 
     function<void(int)> dfs = [&](int node) {
         visited[node] = true;
         for (int j = 0; j < n; ++j) {
-            if (map[node][j] && !visited[j]) dfs(j);
+            if (adjacencyMatrix[node][j] && !visited[j]) dfs(j);
         }
     };
 
     dfs(0);
-    return all_of(visited.begin(), visited.end(), [](bool v) { return v; });
+    return all_of(visited.begin(), visited.end(), [](bool visitedCity) { return visitedCity; });
 }
 
 int main() {
-    string input;
-    getline(cin, input);
+    string inputLine;
+    getline(cin, inputLine);
 
-    // Split input into three parts
-    stringstream ss(input);
+    // Separate input into different parts
+    stringstream ss(inputLine);
     string countryData, buildData, destroyData;
     getline(ss, countryData, ' ');
     getline(ss, buildData, ' ');
     getline(ss, destroyData, ' ');
 
-    // Parse country connection matrix and costs
-    vector<vector<int>> country = parseIntegerMatrix(countryData);
-    vector<vector<char>> buildCosts = parseCharMatrix(buildData);
-    vector<vector<char>> destroyCosts = parseCharMatrix(destroyData);
-    int n = country.size();
+    // Parse connection matrix and cost matrices
+    vector<vector<int>> country = parseIntMatrix(countryData);
+    vector<vector<char>> buildCostMatrix = parseCharMatrix(buildData);
+    vector<vector<char>> destroyCostMatrix = parseCharMatrix(destroyData);
+    int cityCount = country.size();
 
-    if (isAlreadyConnected(country)) {
+    // If cities are connected, no cost is required
+    if (citiesConnected(country)) {
         cout << "0\n";
         return 0;
     }
 
-    // Initialize roads vector for MST
-    vector<Road> roads;
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
+    // Road data collection for MST using Kruskal's algorithm
+    vector<Road> roadList;
+    for (int i = 0; i < cityCount; ++i) {
+        for (int j = i + 1; j < cityCount; ++j) {
             if (country[i][j]) {
-                roads.push_back({i, j, getCost(destroyCosts[i][j]), false});
+                roadList.push_back({i, j, computeCost(destroyCostMatrix[i][j]), false});
             } else {
-                roads.push_back({i, j, getCost(buildCosts[i][j]), true});
+                roadList.push_back({i, j, computeCost(buildCostMatrix[i][j]), true});
             }
         }
     }
 
-    // Sort roads by cost for MST using Kruskal’s algorithm
-    sort(roads.begin(), roads.end(), [](const Road& a, const Road& b) {
+    // Sort roads by cost for MST construction
+    sort(roadList.begin(), roadList.end(), [](const Road& a, const Road& b) {
         return a.cost < b.cost;
     });
 
-    DisjointSet ds(n);
-    int totalCost = 0;
-    int edgesUsed = 0;
+    UnionFind uf(cityCount);
+    int minimumCost = 0;
+    int connectedEdges = 0;
 
-    for (const Road& road : roads) {
-        if (ds.find(road.cityA) != ds.find(road.cityB)) {
-            ds.unite(road.cityA, road.cityB);
-            totalCost += road.cost;
-            edgesUsed++;
+    for (const Road& road : roadList) {
+        if (uf.find(road.from) != uf.find(road.to)) {
+            uf.unite(road.from, road.to);
+            minimumCost += road.cost;
+            connectedEdges++;
 
-            // Break once we connect all cities
-            if (edgesUsed == n - 1) break;
+            // Stop once all cities are connected
+            if (connectedEdges == cityCount - 1) break;
         }
     }
 
-    cout << totalCost << endl;
+    cout << minimumCost << endl;
     return 0;
 }
