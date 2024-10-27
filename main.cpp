@@ -52,7 +52,7 @@ int letterToCost(char c) {
     return isupper(c) ? c - 'A' : c - 'a' + 26; // Treat uppercase and lowercase letters
 }
 
-// Check if the initial graph is already optimally connected
+// Function to check if the initial graph is already optimally connected
 bool isConnectedComponent(const vector<vector<int>>& country) {
     int n = country.size();
     vector<bool> visited(n, false);
@@ -155,6 +155,7 @@ int main() {
         }
     }
 
+    // Output the total cost for connecting all components
     cout << totalCost << endl;
     return 0;
 }
