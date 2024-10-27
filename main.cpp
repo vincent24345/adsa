@@ -55,7 +55,7 @@ int letterToCost(char c) {
     return isupper(c) ? c - 'A' : c - 'a' + 26; //treat different for upper and lower
 }
 
-// Check if all cities are already connected
+//check if all cities are already connected
 bool isConnectedComponent(const vector<vector<int>>& country) {
     int n = country.size();
     vector<bool> visited(n, false);
@@ -71,7 +71,7 @@ bool isConnectedComponent(const vector<vector<int>>& country) {
     };
 
     dfs(0);  
-    return all_of(visited.begin(), visited.end(), [](bool v) { return v; });  // Check if all cities are visited
+    return all_of(visited.begin(), visited.end(), [](bool v) { return v; });  
 }
 
 int main() {
