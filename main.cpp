@@ -49,7 +49,7 @@ private:
 
 // Function to convert letter costs to numerical values
 int letterToCost(char c) {
-    return isupper(c) ? c - 'A' + 1 : c - 'a' + 27; // Treat uppercase and lowercase letters differently
+    return isupper(c) ? c - 'A' : c - 'a' + 26; // Treat uppercase and lowercase letters
 }
 
 // Check if the initial graph is already optimally connected
@@ -98,7 +98,7 @@ int main() {
     // Check if the country is already optimally connected
     if (isConnectedComponent(country)) {
         cout << 0 << endl;
-        return 0; // If already connected, no cost is needed
+        return 0;
     }
 
     UnionFind uf(n);
@@ -155,7 +155,6 @@ int main() {
         }
     }
 
-    // Output the total cost
     cout << totalCost << endl;
     return 0;
 }
