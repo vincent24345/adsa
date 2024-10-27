@@ -1,161 +1,162 @@
 #include <iostream>
 #include <vector>
-#include <limits.h>
+#include <climits>
 #include <sstream>
 using namespace std;
 
-// List of valid characters
-string charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+// Allowed character set for cost calculation
+string allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-// Cost calculation for each character
-int calcCost(char c) {
-    return charset.find(c);
+// Cost calculator for character-based input
+int calculateCharCost(char ch) {
+    return allowedChars.find(ch);
 }
 
-// Build the cost matrix
-vector<vector<int>> constructCostMatrix(const vector<vector<int>>& currentRoads, const vector<vector<char>>& buildCost, const vector<vector<char>>& destroyCost) {
-    int n = currentRoads.size();
-    vector<vector<int>> costMatrix(n, vector<int>(n, 0));
+// Build the matrix of construction and destruction costs
+vector<vector<int>> buildCostMatrix(const vector<vector<int>>& roadStatus, const vector<vector<char>>& buildCharCosts, const vector<vector<char>>& destroyCharCosts) {
+    int matrixSize = roadStatus.size();
+    vector<vector<int>> costMatrix(matrixSize, vector<int>(matrixSize, 0));
 
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            if (currentRoads[i][j] == 0) { // Road needs to be built
-                costMatrix[i][j] = calcCost(buildCost[i][j]);
-            } else { // Existing road, consider destroy cost
-                costMatrix[i][j] = -calcCost(destroyCost[i][j]);
+    for (int i = 0; i < matrixSize; i++) {
+        for (int j = 0; j < matrixSize; j++) {
+            if (roadStatus[i][j] == 0) { // No existing road, construction required
+                costMatrix[i][j] = calculateCharCost(buildCharCosts[i][j]);
+            } else { // Existing road, consider destruction cost
+                costMatrix[i][j] = -calculateCharCost(destroyCharCosts[i][j]);
             }
         }
     }
     return costMatrix;
 }
 
-// Disjoint set for Kruskal's algorithm
-vector<int> root(100), rankSet(100);
+// Disjoint set data for union-find structure in MST construction
+vector<int> setRoot(100), setRank(100);
 
-// Find the root of a set
-int findRoot(int node) {
-    if (root[node] != node) {
-        root[node] = findRoot(root[node]);
+// Retrieve root of the set in union-find structure
+int findSetRoot(int node) {
+    if (setRoot[node] != node) {
+        setRoot[node] = findSetRoot(setRoot[node]);
     }
-    return root[node];
+    return setRoot[node];
 }
 
-// Union by rank
-void unionSets(int u, int v) {
-    int rootU = findRoot(u);
-    int rootV = findRoot(v);
-    if (rootU != rootV) {
-        if (rankSet[rootU] > rankSet[rootV]) {
-            root[rootV] = rootU;
-        } else if (rankSet[rootU] < rankSet[rootV]) {
-            root[rootU] = rootV;
+// Union by rank function to combine disjoint sets
+void combineSets(int nodeA, int nodeB) {
+    int rootA = findSetRoot(nodeA);
+    int rootB = findSetRoot(nodeB);
+    if (rootA != rootB) {
+        if (setRank[rootA] > setRank[rootB]) {
+            setRoot[rootB] = rootA;
+        } else if (setRank[rootA] < setRank[rootB]) {
+            setRoot[rootA] = rootB;
         } else {
-            root[rootV] = rootU;
-            rankSet[rootU]++;
+            setRoot[rootB] = rootA;
+            setRank[rootA]++;
         }
     }
 }
 
-// Kruskal's algorithm to find MST
-vector<vector<int>> applyKruskal(const vector<vector<int>>& costs, int totalCities) {
-    vector<vector<int>> mstMatrix(totalCities, vector<int>(totalCities, 0));
-    int mstCost = 0;
+// Kruskal's algorithm to find Minimum Spanning Tree for cost minimization
+vector<vector<int>> constructMST(const vector<vector<int>>& edgeCosts, int nodeCount) {
+    vector<vector<int>> mstEdges(nodeCount, vector<int>(nodeCount, 0));
 
-    for (int i = 0; i < totalCities; i++) {
-        root[i] = i;
+    // Initialize the disjoint sets for MST construction
+    for (int i = 0; i < nodeCount; i++) {
+        setRoot[i] = i;
     }
 
-    int edgeCount = 0;
-    while (edgeCount < totalCities - 1) {
-        int minCost = INT_MAX;
-        int u = -1, v = -1;
-        for (int i = 0; i < totalCities; i++) {
-            for (int j = 0; j < totalCities; j++) {
-                if (findRoot(i) != findRoot(j) && costs[i][j] < minCost) {
-                    minCost = costs[i][j];
-                    u = i;
-                    v = j;
+    int edgesAdded = 0;
+    while (edgesAdded < nodeCount - 1) {
+        int minEdgeCost = INT_MAX;
+        int fromNode = -1, toNode = -1;
+
+        for (int i = 0; i < nodeCount; i++) {
+            for (int j = 0; j < nodeCount; j++) {
+                if (findSetRoot(i) != findSetRoot(j) && edgeCosts[i][j] < minEdgeCost) {
+                    minEdgeCost = edgeCosts[i][j];
+                    fromNode = i;
+                    toNode = j;
                 }
             }
         }
-        if (u != -1 && v != -1) {
-            unionSets(u, v);
-            edgeCount++;
-            mstCost += minCost;
-            mstMatrix[u][v] = mstMatrix[v][u] = 1;
+
+        if (fromNode != -1 && toNode != -1) {
+            combineSets(fromNode, toNode);
+            edgesAdded++;
+            mstEdges[fromNode][toNode] = mstEdges[toNode][fromNode] = 1;
         }
     }
-    return mstMatrix;
+    return mstEdges;
 }
 
-// Calculate total minimum cost after MST
-int calculateMinCost(const vector<vector<int>>& currentRoads, const vector<vector<int>>& mst, const vector<vector<int>>& costMatrix) {
+// Compute the total minimized cost of the new road network configuration
+int computeTotalCost(const vector<vector<int>>& initialRoads, const vector<vector<int>>& mstEdges, const vector<vector<int>>& roadCostMatrix) {
     int totalCost = 0;
-    int cities = currentRoads.size();
+    int roadMatrixSize = initialRoads.size();
 
-    for (int i = 0; i < cities; i++) {
-        for (int j = 0; j < cities; j++) {
-            if (currentRoads[i][j] == 0 && mst[i][j] == 1) {
-                totalCost += costMatrix[i][j];
-            } else if (currentRoads[i][j] == 1 && mst[i][j] == 0) {
-                totalCost += abs(costMatrix[i][j]);
+    for (int i = 0; i < roadMatrixSize; i++) {
+        for (int j = 0; j < roadMatrixSize; j++) {
+            if (initialRoads[i][j] == 0 && mstEdges[i][j] == 1) {
+                totalCost += roadCostMatrix[i][j];
+            } else if (initialRoads[i][j] == 1 && mstEdges[i][j] == 0) {
+                totalCost += abs(roadCostMatrix[i][j]);
             }
         }
     }
-    return totalCost / 2; // Divided by 2 to account for bidirectional roads
+    return totalCost / 2; // Accounts for bidirectional nature of roads
 }
 
-// Helper function to parse a comma-separated string into an integer matrix
-vector<vector<int>> parseIntMatrix(const string& str) {
+// Convert comma-separated integer string to matrix
+vector<vector<int>> parseIntegerMatrix(const string& input) {
     vector<vector<int>> matrix;
-    vector<int> row;
-    for (char ch : str) {
+    vector<int> currentRow;
+    for (char ch : input) {
         if (ch == ',') {
-            matrix.push_back(row);
-            row.clear();
+            matrix.push_back(currentRow);
+            currentRow.clear();
         } else {
-            row.push_back(ch - '0');
+            currentRow.push_back(ch - '0');
         }
     }
-    matrix.push_back(row);
+    matrix.push_back(currentRow);
     return matrix;
 }
 
-// Helper function to parse a comma-separated string into a character matrix
-vector<vector<char>> parseCharMatrix(const string& str) {
+// Convert comma-separated character string to matrix
+vector<vector<char>> parseCharacterMatrix(const string& input) {
     vector<vector<char>> matrix;
-    vector<char> row;
-    for (char ch : str) {
+    vector<char> currentRow;
+    for (char ch : input) {
         if (ch == ',') {
-            matrix.push_back(row);
-            row.clear();
+            matrix.push_back(currentRow);
+            currentRow.clear();
         } else {
-            row.push_back(ch);
+            currentRow.push_back(ch);
         }
     }
-    matrix.push_back(row);
+    matrix.push_back(currentRow);
     return matrix;
 }
 
 int main() {
-    string input;
-    getline(cin, input);
+    string lineInput;
+    getline(cin, lineInput);
 
-    istringstream stream(input);
-    vector<string> data;
-    string token;
-    while (getline(stream, token, ' ')) {
-        data.push_back(token);
+    istringstream inputStream(lineInput);
+    vector<string> parsedData;
+    string segment;
+    while (getline(inputStream, segment, ' ')) {
+        parsedData.push_back(segment);
     }
 
-    vector<vector<int>> currentRoads = parseIntMatrix(data[0]);
-    vector<vector<char>> buildCost = parseCharMatrix(data[1]);
-    vector<vector<char>> destroyCost = parseCharMatrix(data[2]);
+    vector<vector<int>> currentRoadMatrix = parseIntegerMatrix(parsedData[0]);
+    vector<vector<char>> buildCostChars = parseCharacterMatrix(parsedData[1]);
+    vector<vector<char>> destroyCostChars = parseCharacterMatrix(parsedData[2]);
 
-    vector<vector<int>> costMatrix = constructCostMatrix(currentRoads, buildCost, destroyCost);
-    vector<vector<int>> mst = applyKruskal(costMatrix, currentRoads.size());
+    vector<vector<int>> edgeCostMatrix = buildCostMatrix(currentRoadMatrix, buildCostChars, destroyCostChars);
+    vector<vector<int>> mstResult = constructMST(edgeCostMatrix, currentRoadMatrix.size());
 
-    int minCost = calculateMinCost(currentRoads, mst, costMatrix);
-    cout << minCost << endl;
+    int finalMinCost = computeTotalCost(currentRoadMatrix, mstResult, edgeCostMatrix);
+    cout << finalMinCost << endl;
     return 0;
 }
