@@ -7,24 +7,26 @@
 
 using namespace std;
 
+//structure between two cities
 struct Edge {
-    int u, v, cost;
-    bool isBuild;  // true for build, false for destroy
+    int u, v;  
+    int cost;  
+    bool isBuild; 
 };
 
-// Disjoint Set Union (Union-Find) for Kruskal's algorithm
+//manage connected components 
 class UnionFind {
 public:
     UnionFind(int n) {
         parent.resize(n);
         rank.resize(n, 0);
         for (int i = 0; i < n; ++i)
-            parent[i] = i;
+            parent[i] = i;  
     }
 
     int find(int u) {
         if (parent[u] != u)
-            parent[u] = find(parent[u]);
+            parent[u] = find(parent[u]);  
         return parent[u];
     }
 
@@ -44,19 +46,21 @@ public:
     }
 
 private:
-    vector<int> parent, rank;
+ //parent and rank for each city
+    vector<int> parent, rank; 
 };
 
-// Function to convert letter costs to numerical values
+//convert a letter to a numerical cost
 int letterToCost(char c) {
-    return isupper(c) ? c - 'A' : c - 'a' + 26; // Treat uppercase and lowercase letters
+    return isupper(c) ? c - 'A' : c - 'a' + 26; //treat different for upper and lower
 }
 
-// Function to check if the initial graph is already optimally connected
+// Check if all cities are already connected
 bool isConnectedComponent(const vector<vector<int>>& country) {
     int n = country.size();
     vector<bool> visited(n, false);
 
+    //depth First Search
     function<void(int)> dfs = [&](int node) {
         visited[node] = true;
         for (int i = 0; i < n; ++i) {
@@ -66,45 +70,46 @@ bool isConnectedComponent(const vector<vector<int>>& country) {
         }
     };
 
-    dfs(0);
-    return all_of(visited.begin(), visited.end(), [](bool v) { return v; });
+    dfs(0);  
+    return all_of(visited.begin(), visited.end(), [](bool v) { return v; });  // Check if all cities are visited
 }
 
 int main() {
     string input;
-    getline(cin, input);
+    getline(cin, input);  
 
-    // Split the input into three parts
+    //split into country connections, build costs, and destroy costs
     stringstream ss(input);
     string countryStr, buildStr, destroyStr;
     getline(ss, countryStr, ' ');
     getline(ss, buildStr, ' ');
     getline(ss, destroyStr, ' ');
 
-    // Parse the country matrix
+    //parse the country matrix
     vector<vector<int>> country;
     stringstream countryStream(countryStr);
     string line;
     while (getline(countryStream, line, ',')) {
         vector<int> row(line.size());
         for (size_t i = 0; i < line.size(); ++i) {
-            row[i] = line[i] - '0';
+    //convert characters
+            row[i] = line[i] - '0'; 
         }
         country.push_back(row);
     }
 
     int n = country.size();
 
-    // Check if the country is already optimally connected
+    //cost not needed
     if (isConnectedComponent(country)) {
         cout << 0 << endl;
         return 0;
     }
 
-    UnionFind uf(n);
-    vector<Edge> edges;
+    UnionFind uf(n);  
+    vector<Edge> edges;  
 
-    // Parse build and destroy costs into two 2D arrays
+    //parse the build and destroy costs
     vector<vector<int>> buildCosts(n, vector<int>(n));
     vector<vector<int>> destroyCosts(n, vector<int>(n));
     stringstream buildStream(buildStr), destroyStream(destroyStr);
@@ -112,50 +117,47 @@ int main() {
     for (int i = 0; i < n; ++i) {
         getline(buildStream, line, ',');
         for (int j = 0; j < n; ++j) {
-            buildCosts[i][j] = letterToCost(line[j]);
+            buildCosts[i][j] = letterToCost(line[j]); 
         }
         getline(destroyStream, line, ',');
         for (int j = 0; j < n; ++j) {
-            destroyCosts[i][j] = letterToCost(line[j]);
+            destroyCosts[i][j] = letterToCost(line[j]); 
         }
     }
 
-    // Generate edges for build and destroy costs
+    //existing roads and possible new roads
     for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) { // Only add each edge once (undirected)
+        for (int j = i + 1; j < n; ++j) { 
             if (country[i][j] == 1) {
-                // Existing road, consider destruction cost
-                edges.push_back({i, j, destroyCosts[i][j], false});
+                //existing road
+                edges.push_back({i, j, destroyCosts[i][j], false});  
             } else {
-                // Non-existent road, consider build cost
-                edges.push_back({i, j, buildCosts[i][j], true});
+                // no road
+                edges.push_back({i, j, buildCosts[i][j], true});  
             }
         }
     }
 
-    // Sort edges by cost
+    //sort edges by cost
     sort(edges.begin(), edges.end(), [](const Edge &a, const Edge &b) {
-        return a.cost < b.cost;
+        return a.cost < b.cost;  
     });
 
-    // Kruskal's algorithm with modification
-    int totalCost = 0;
-    int edgesUsed = 0;  // Track how many edges are used for connecting components
+    int totalCost = 0;  
+    int edgesUsed = 0; 
 
-    // Add edges to the total cost based on connection needs
+    //kruskal's algorithm 
     for (const Edge &edge : edges) {
-        // Check if edge connects different components
-        if (uf.find(edge.u) != uf.find(edge.v)) {
-            uf.unite(edge.u, edge.v);
-            totalCost += edge.cost;  // Add cost of either building or destroying edges
+        if (uf.find(edge.u) != uf.find(edge.v)) {  
+            uf.unite(edge.u, edge.v);  
+            totalCost += edge.cost;  
             edgesUsed++;
 
-            // Stop if we've connected all components
-            if (edgesUsed == n - 1) break;
+            //all cities connected
+            if (edgesUsed == n - 1) break;  
         }
     }
 
-    // Output the total cost for connecting all components
-    cout << totalCost << endl;
+    cout << totalCost << endl;  
     return 0;
 }
